@@ -1,0 +1,21 @@
+# .github/workflows/sandbox.yml: ship this repository to https://castellanopc-create.sandbox.developyourself.dev
+# Add your deploy key as a repository secret named SANDBOX_KEY.
+# Folder "public/" is served if it exists, else the whole upload. "shared/" keeps files between deploys.
+name: Ship to my sandbox
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # - run: npm ci && npm run build      # optional build step
+      - name: Ship
+        env:
+          SANDBOX_KEY: ${{ secrets.SANDBOX_KEY }}
+          SANDBOX_DIR: .                     # or the folder your build writes to
+        run: |
+          mkdir -p ~/.ssh && install -m 600 /dev/null ~/.ssh/k && printf '%s\n' "$SANDBOX_KEY" > ~/.ssh/k
+          tar -czf - --exclude=.git -C "$SANDBOX_DIR" . | ssh -i ~/.ssh/k -o StrictHostKeyChecking=accept-new -p 2222 sb-castellanopc-create@sandbox.developyourself.dev

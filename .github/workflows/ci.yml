@@ -1,0 +1,68 @@
+# Gate automatici su ogni pull request verso main (vedi CLAUDE.md).
+# Una PR si unisce solo con tutti i controlli verdi.
+name: CI
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  up-to-date:
+    name: up-to-date-with-main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Il branch contiene tutto main
+        run: |
+          git fetch -q origin main
+          if git merge-base --is-ancestor origin/main HEAD; then echo "ok: branch aggiornato"; else
+            echo "::error::Il branch non contiene gli ultimi commit di main: unisci origin/main nel branch."; exit 1; fi
+
+  php-lint:
+    name: php-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3', tools: none, coverage: none }
+      - name: Sintassi di tutti i file PHP
+        run: |
+          find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l > /dev/null
+          echo "ok - nessun errore di sintassi"
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: bash tests/secret-scan.sh
+
+  smoke-tests:
+    name: smoke-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3', extensions: 'pdo_sqlite, gd, exif, mbstring', tools: none, coverage: none }
+      - run: php tests/smoke.php
+
+  i18n:
+    name: i18n-keys
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3', tools: none, coverage: none }
+      - run: php tests/i18n.php
+
+  phpstan:
+    name: phpstan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3', extensions: 'pdo_sqlite, gd, exif, mbstring', tools: 'phpstan:2', coverage: none }
+      - run: phpstan analyse --no-progress --error-format=github

@@ -4,7 +4,7 @@ function page_start(string $title, bool $public = false): void
     global $CFG;
     $u = user();
     ?><!DOCTYPE html>
-<html lang="it">
+<html lang="<?= lang() ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,24 +20,27 @@ function page_start(string $title, bool $public = false): void
   </a>
   <nav>
     <?php if ($u && $u['role'] === 'dealer'): ?>
-      <a href="<?= url('home') ?>">Dashboard</a>
-      <a href="<?= url('appuntamenti') ?>">Appuntamenti</a>
-      <a href="<?= url('valuta') ?>">Nuova valutazione</a>
-      <a href="<?= url('annunci') ?>">I miei annunci</a>
+      <a href="<?= url('home') ?>"><?= t('Dashboard') ?></a>
+      <a href="<?= url('appuntamenti') ?>"><?= t('Appuntamenti') ?></a>
+      <a href="<?= url('valuta') ?>"><?= t('Nuova valutazione') ?></a>
+      <a href="<?= url('annunci') ?>"><?= t('I miei annunci') ?></a>
     <?php elseif ($u && $u['role'] === 'niu'): ?>
-      <a href="<?= url('home') ?>">Dashboard</a>
-      <a href="<?= url('revisione') ?>">Revisione annunci</a>
-      <a href="<?= url('valutazioni') ?>">Valutazioni</a>
-      <a href="<?= url('richieste') ?>">Richieste clienti</a>
-      <a href="<?= url('dealer') ?>">Dealer</a>
+      <a href="<?= url('home') ?>"><?= t('Dashboard') ?></a>
+      <a href="<?= url('revisione') ?>"><?= t('Revisione annunci') ?></a>
+      <a href="<?= url('valutazioni') ?>"><?= t('Valutazioni') ?></a>
+      <a href="<?= url('richieste') ?>"><?= t('Richieste clienti') ?></a>
+      <a href="<?= url('dealer') ?>"><?= t('Dealer') ?></a>
     <?php endif; ?>
-    <?php if (!$u): ?><a href="<?= url('stima') ?>">Valuta il tuo NIU</a><?php endif; ?>
-    <a href="<?= url('usato') ?>">Vetrina usato</a>
+    <?php if (!$u): ?><a href="<?= url('stima') ?>"><?= t('Valuta il tuo NIU') ?></a><?php endif; ?>
+    <a href="<?= url('usato') ?>"><?= t('Vetrina usato') ?></a>
     <?php if ($u): ?>
-      <form method="post" action="<?= url('logout') ?>" class="inline"><?= csrf() ?><button class="link">Esci</button></form>
+      <form method="post" action="<?= url('logout') ?>" class="inline"><?= csrf() ?><button class="link"><?= t('Esci') ?></button></form>
     <?php else: ?>
-      <a href="<?= url('login') ?>">Area dealer</a>
+      <a href="<?= url('login') ?>"><?= t('Area dealer') ?></a>
     <?php endif; ?>
+    <?php if (!empty($CFG['i18n_enabled'])): ?><details class="lang"><summary><?= strtoupper(lang()) ?></summary>
+      <div><?php foreach (LANGS as $c => $n): ?><a href="<?= h(lang_url($c)) ?>" class="<?= $c === lang() ? 'on' : '' ?>" hreflang="<?= $c ?>"><?= h($n) ?></a><?php endforeach; ?></div>
+    </details><?php endif; ?>
   </nav>
 </header>
 <main>
@@ -47,14 +50,14 @@ function page_start(string $title, bool $public = false): void
 function page_end(): void
 { ?>
 </main>
-<footer class="bottom"><span>niu.com</span><span>Prototipo — dati del portale simulati</span></footer>
+<footer class="bottom"><span>niu.com</span><span><?= t('Prototipo — dati del portale simulati') ?></span></footer>
 </body></html>
 <?php }
 
 function status_badge(string $s): string
 {
-    $labels = ['bozza' => 'Bozza', 'in_revisione' => 'In revisione NIU', 'pubblicato' => 'Pubblicato',
-               'rifiutato' => 'Da correggere', 'venduto' => 'Venduto', 'ritirato' => 'Ritirato'];
+    $labels = ['bozza' => t('Bozza'), 'in_revisione' => t('In revisione NIU'), 'pubblicato' => t('Pubblicato'),
+               'rifiutato' => t('Da correggere'), 'venduto' => t('Venduto'), 'ritirato' => t('Ritirato')];
     return '<span class="badge s-' . h($s) . '">' . h($labels[$s] ?? $s) . '</span>';
 }
 

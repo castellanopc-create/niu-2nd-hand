@@ -20,24 +20,24 @@ case 'setup':
         $email = trim(strtolower($_POST['email'] ?? ''));
         $pw = (string)($_POST['password'] ?? '');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($pw) < 10) {
-            flash('Email valida e password di almeno 10 caratteri.', 'err'); redirect('setup');
+            flash(t('Email valida e password di almeno 10 caratteri.'), 'err'); redirect('setup');
         }
         db()->prepare('INSERT INTO users (email, pass, role, name, company) VALUES (?,?,?,?,?)')
             ->execute([$email, password_hash($pw, PASSWORD_DEFAULT), 'niu', trim($_POST['name'] ?? 'NIU Admin'), 'NIU']);
         session_regenerate_id(true);
         $_SESSION['uid'] = (int)db()->lastInsertId();
-        flash('Account NIU creato. Ora aggiungi i dealer.');
+        flash(t('Account NIU creato. Ora aggiungi i dealer.'));
         redirect('dealer');
     }
-    page_start('Configurazione iniziale'); ?>
+    page_start(t('Configurazione iniziale')); ?>
     <section class="card narrow">
-      <h1>PRIMO <em>AVVIO</em></h1>
-      <p>Crea l'account amministratore NIU. Potrà creare i dealer e approvare gli annunci.</p>
+      <h1><?= t('PRIMO <em>AVVIO</em>') ?></h1>
+      <p><?= t('Crea l\'account amministratore NIU. Potrà creare i dealer e approvare gli annunci.') ?></p>
       <form method="post"><?= csrf() ?>
-        <label>Nome <input name="name" required value="NIU Admin"></label>
-        <label>Email <input type="email" name="email" required></label>
-        <label>Password (min. 10 caratteri) <input type="password" name="password" minlength="10" required></label>
-        <button class="btn">Crea account</button>
+        <label><?= t('Nome') ?> <input name="name" required value="NIU Admin"></label>
+        <label><?= t('Email') ?> <input type="email" name="email" required></label>
+        <label><?= t('Password (min. 10 caratteri)') ?> <input type="password" name="password" minlength="10" required></label>
+        <button class="btn"><?= t('Crea account') ?></button>
       </form>
     </section>
     <?php page_end(); break;
@@ -54,15 +54,15 @@ case 'login':
             redirect('home');
         }
         usleep(400000);
-        flash('Credenziali non valide.', 'err'); redirect('login');
+        flash(t('Credenziali non valide.'), 'err'); redirect('login');
     }
-    page_start('Accesso'); ?>
+    page_start(t('Accesso')); ?>
     <section class="card narrow">
-      <h1>AREA <em>DEALER</em></h1>
+      <h1><?= t('AREA <em>DEALER</em>') ?></h1>
       <form method="post"><?= csrf() ?>
-        <label>Email <input type="email" name="email" required autofocus></label>
-        <label>Password <input type="password" name="password" required></label>
-        <button class="btn">Accedi</button>
+        <label><?= t('Email') ?> <input type="email" name="email" required autofocus></label>
+        <label><?= t('Password') ?> <input type="password" name="password" required></label>
+        <button class="btn"><?= t('Accedi') ?></button>
       </form>
     </section>
     <?php page_end(); break;
@@ -74,7 +74,7 @@ case 'logout':
 // ===========================================================================
 case 'home':
     $u = require_login();
-    page_start('Dashboard');
+    page_start(t('Dashboard'));
     if ($u['role'] === 'dealer') {
         $st = db()->prepare('SELECT * FROM valuations WHERE dealer_id = ? ORDER BY id DESC LIMIT 10');
         $st->execute([$u['id']]); $vals = $st->fetchAll();
@@ -84,33 +84,33 @@ case 'home':
         $st->execute([$u['id']]); $extra = $st->fetchColumn();
         $st = db()->prepare("SELECT * FROM requests WHERE dealer_id = ? AND status IN ('richiesto','confermato') ORDER BY appt_at LIMIT 10");
         $st->execute([$u['id']]); $appts = $st->fetchAll(); ?>
-        <h1>CIAO <em><?= h($u['company'] ?: $u['name']) ?></em></h1>
+        <h1><?= t('CIAO') ?> <em><?= h($u['company'] ?: $u['name']) ?></em></h1>
         <div class="kpis">
-          <div><b><?= count($appts) ?></b><span>Appuntamenti clienti</span></div>
-          <div><b><?= count($vals) ?></b><span>Valutazioni recenti</span></div>
-          <div><b><?= (int)($counts['pubblicato'] ?? 0) ?></b><span>Annunci online</span></div>
-          <div><b><?= (int)($counts['in_revisione'] ?? 0) ?></b><span>In revisione NIU</span></div>
-          <div><b><?= eur($extra) ?></b><span>Extra NIU maturati</span></div>
+          <div><b><?= count($appts) ?></b><span><?= t('Appuntamenti clienti') ?></span></div>
+          <div><b><?= count($vals) ?></b><span><?= t('Valutazioni recenti') ?></span></div>
+          <div><b><?= (int)($counts['pubblicato'] ?? 0) ?></b><span><?= t('Annunci online') ?></span></div>
+          <div><b><?= (int)($counts['in_revisione'] ?? 0) ?></b><span><?= t('In revisione NIU') ?></span></div>
+          <div><b><?= eur($extra) ?></b><span><?= t('Extra NIU maturati') ?></span></div>
         </div>
-        <p><a class="btn" href="<?= url('valuta') ?>">+ Nuova valutazione</a></p>
-        <?php if ($appts): ?><h2>Prossimi appuntamenti</h2><?php render_requests($appts, false); endif; ?>
-        <h2>Ultime valutazioni</h2>
+        <p><a class="btn" href="<?= url('valuta') ?>"><?= t('+ Nuova valutazione') ?></a></p>
+        <?php if ($appts): ?><h2><?= t('Prossimi appuntamenti') ?></h2><?php render_requests($appts, false); endif; ?>
+        <h2><?= t('Ultime valutazioni') ?></h2>
         <?php render_valuations($vals, false);
     } else {
         $q = fn($sql) => db()->query($sql)->fetchColumn(); ?>
-        <h1>DASHBOARD <em>NIU</em></h1>
+        <h1><?= t('DASHBOARD <em>NIU</em>') ?></h1>
         <div class="kpis">
-          <div><b><?= $q("SELECT COUNT(*) FROM listings WHERE status='in_revisione'") ?></b><span>Annunci da revisionare</span></div>
-          <div><b><?= $q("SELECT COUNT(*) FROM listings WHERE status='pubblicato'") ?></b><span>Annunci online</span></div>
-          <div><b><?= $q("SELECT COUNT(*) FROM valuations") ?></b><span>Valutazioni totali</span></div>
-          <div><b><?= $q("SELECT COUNT(*) FROM requests") ?></b><span>Autovalutazioni clienti</span></div>
-          <div><b><?= $q("SELECT COUNT(*) FROM requests WHERE wants_new = 1") ?></b><span>Clienti interessati a NIU nuovo</span></div>
-          <div><b><?= $q("SELECT COUNT(*) FROM valuations WHERE new_purchase=1 AND status='ritirato'") ?></b><span>Permute su NIU nuovo</span></div>
-          <div><b><?= eur($q("SELECT COALESCE(SUM(incentive_niu),0) FROM valuations WHERE status='ritirato'")) ?></b><span>Extra NIU impegnati</span></div>
-          <div><b><?= $q("SELECT COUNT(*) FROM users WHERE role='dealer' AND active=1") ?></b><span>Dealer attivi</span></div>
+          <div><b><?= $q("SELECT COUNT(*) FROM listings WHERE status='in_revisione'") ?></b><span><?= t('Annunci da revisionare') ?></span></div>
+          <div><b><?= $q("SELECT COUNT(*) FROM listings WHERE status='pubblicato'") ?></b><span><?= t('Annunci online') ?></span></div>
+          <div><b><?= $q("SELECT COUNT(*) FROM valuations") ?></b><span><?= t('Valutazioni totali') ?></span></div>
+          <div><b><?= $q("SELECT COUNT(*) FROM requests") ?></b><span><?= t('Autovalutazioni clienti') ?></span></div>
+          <div><b><?= $q("SELECT COUNT(*) FROM requests WHERE wants_new = 1") ?></b><span><?= t('Clienti interessati a NIU nuovo') ?></span></div>
+          <div><b><?= $q("SELECT COUNT(*) FROM valuations WHERE new_purchase=1 AND status='ritirato'") ?></b><span><?= t('Permute su NIU nuovo') ?></span></div>
+          <div><b><?= eur($q("SELECT COALESCE(SUM(incentive_niu),0) FROM valuations WHERE status='ritirato'")) ?></b><span><?= t('Extra NIU impegnati') ?></span></div>
+          <div><b><?= $q("SELECT COUNT(*) FROM users WHERE role='dealer' AND active=1") ?></b><span><?= t('Dealer attivi') ?></span></div>
         </div>
-        <p><a class="btn" href="<?= url('revisione') ?>">Vai alla revisione annunci</a></p>
-        <h2>Ultime valutazioni</h2>
+        <p><a class="btn" href="<?= url('revisione') ?>"><?= t('Vai alla revisione annunci') ?></a></p>
+        <h2><?= t('Ultime valutazioni') ?></h2>
         <?php render_valuations(db()->query('SELECT v.*, u.company FROM valuations v JOIN users u ON u.id=v.dealer_id ORDER BY v.id DESC LIMIT 10')->fetchAll(), true);
     }
     page_end(); break;
@@ -129,7 +129,7 @@ case 'valuta':
         }
         $soh = max(0, min(100, (int)($_POST['battery_soh'] ?? 0)));
         $answers = array_map(fn($a) => in_array($a, ['ok', 'usura', 'difetto', 'na'], true) ? $a : 'na', (array)($_POST['a'] ?? []));
-        if (strlen($vin) < 8 || $model === '') { flash('Telaio e modello sono obbligatori.', 'err'); redirect('valuta', ['vin' => $vin]); }
+        if (strlen($vin) < 8 || $model === '') { flash(t('Telaio e modello sono obbligatori.'), 'err'); redirect('valuta', ['vin' => $vin]); }
 
         [$score, $grade, $blockers] = evaluate($answers, $cat, $soh);
         $portal = portal_lookup($vin);
@@ -154,56 +154,56 @@ case 'valuta':
     }
     $vin = strtoupper(preg_replace('/[^A-Z0-9]/i', '', $_GET['vin'] ?? ($R['vin'] ?? '')));
     $pre = $R ? json_decode($R['answers_json'] ?? '{}', true) : [];
-    page_start('Nuova valutazione'); ?>
-    <h1>NUOVA <em>VALUTAZIONE</em></h1>
-    <?php if ($R): ?><div class="flash">Valutazione in officina per la richiesta di <b><?= h($R['name']) ?></b> (<?= h(it_date($R['appt_at'])) ?>). Le risposte del cliente sono precompilate: <b>verificale una per una</b>.</div><?php endif; ?>
+    page_start(t('Nuova valutazione')); ?>
+    <h1><?= t('NUOVA <em>VALUTAZIONE</em>') ?></h1>
+    <?php if ($R): ?><div class="flash"><?= t('Valutazione in officina per la richiesta di <b>{name}</b> ({date}). Le risposte del cliente sono precompilate: <b>verificale una per una</b>.', ['name' => h($R['name']), 'date' => h(it_date($R['appt_at']))]) ?></div><?php endif; ?>
     <section class="card">
-      <h2>1 · Telaio</h2>
+      <h2><?= t('1 · Telaio') ?></h2>
       <form method="get" class="row">
         <input type="hidden" name="p" value="valuta"><?php if ($R): ?><input type="hidden" name="req" value="<?= $R['id'] ?>"><?php endif; ?>
-        <input name="vin" value="<?= h($vin) ?>" placeholder="Numero di telaio (VIN)" minlength="8" maxlength="20" required>
-        <button class="btn">Recupera dati dal portale</button>
+        <input name="vin" value="<?= h($vin) ?>" placeholder="<?= h(t('Numero di telaio (VIN)')) ?>" minlength="8" maxlength="20" required>
+        <button class="btn"><?= t('Recupera dati dal portale') ?></button>
       </form>
     </section>
     <?php if (strlen($vin) >= 8):
         $d = portal_lookup($vin); ?>
     <section class="card">
-      <h2>2 · Dati dal portale NIU <?php if ($d['simulated']): ?><span class="badge warn">SIMULATI</span><?php endif; ?></h2>
+      <h2><?= t('2 · Dati dal portale NIU') ?> <?php if ($d['simulated']): ?><span class="badge warn"><?= t('SIMULATI') ?></span><?php endif; ?></h2>
       <?php render_portal($d); ?>
     </section>
     <form method="post" class="card"><?= csrf() ?>
       <input type="hidden" name="vin" value="<?= h($vin) ?>"><?php if ($R): ?><input type="hidden" name="req" value="<?= $R['id'] ?>"><?php endif; ?>
-      <h2>3 · Veicolo</h2>
+      <h2><?= t('3 · Veicolo') ?></h2>
       <div class="grid3">
-        <label>Modello
+        <label><?= t('Modello') ?>
           <select name="model" id="model" required>
-            <option value="">— scegli —</option>
+            <option value=""><?= t('— scegli —') ?></option>
             <?php foreach ($CFG['categories'] as $c => $cl): ?>
-              <optgroup label="<?= h($cl) ?>"><?php foreach ($MODELS[$c] as $m): ?><option data-cat="<?= $c ?>" <?= ($R['model'] ?? '') === $m ? 'selected' : '' ?>><?= h($m) ?></option><?php endforeach; ?></optgroup>
+              <optgroup label="<?= h(t($cl)) ?>"><?php foreach ($MODELS[$c] as $m): ?><option data-cat="<?= $c ?>" <?= ($R['model'] ?? '') === $m ? 'selected' : '' ?>><?= h($m) ?></option><?php endforeach; ?></optgroup>
             <?php endforeach; ?>
-            <option value="__other">Altro modello NIU (fuori listino)…</option>
+            <option value="__other"><?= t('Altro modello NIU (fuori listino)…') ?></option>
           </select>
         </label>
-        <label>Anno <input type="number" name="year" min="2015" max="<?= date('Y') ?>" value="<?= $R['year'] ?? substr($d['first_sale_date'], 0, 4) ?>"></label>
-        <label>Chilometri <input type="number" name="km" min="0" required value="<?= h((string)($R['km'] ?? '')) ?>"></label>
+        <label><?= t('Anno') ?> <input type="number" name="year" min="2015" max="<?= date('Y') ?>" value="<?= $R['year'] ?? substr($d['first_sale_date'], 0, 4) ?>"></label>
+        <label><?= t('Chilometri') ?> <input type="number" name="km" min="0" required value="<?= h((string)($R['km'] ?? '')) ?>"></label>
       </div>
       <div class="grid3 hidden" id="other">
-        <label>Nome modello <input name="other_model"></label>
-        <label>Categoria <select name="other_cat"><?php foreach ($CFG['categories'] as $c => $cl): ?><option value="<?= $c ?>"><?= h($cl) ?></option><?php endforeach; ?></select></label>
+        <label><?= t('Nome modello') ?> <input name="other_model"></label>
+        <label><?= t('Categoria') ?> <select name="other_cat"><?php foreach ($CFG['categories'] as $c => $cl): ?><option value="<?= $c ?>"><?= h(t($cl)) ?></option><?php endforeach; ?></select></label>
       </div>
 
-      <h2>4 · Checklist NIU</h2>
-      <p class="muted">Per ogni voce: <b>OK</b>, <b>Usura</b> (normale per l'età), <b>Difetto</b> (da riparare), <b>N/A</b>. Le voci non pertinenti al tipo di veicolo vengono ignorate.</p>
-      <label class="soh">Stato di salute batteria (SOH, %) — da app NIU o tool diagnostico
+      <h2><?= t('4 · Checklist NIU') ?></h2>
+      <p class="muted"><?= t('Per ogni voce: <b>OK</b>, <b>Usura</b> (normale per l\'età), <b>Difetto</b> (da riparare), <b>N/A</b>. Le voci non pertinenti al tipo di veicolo vengono ignorate.') ?></p>
+      <label class="soh"><?= t('Stato di salute batteria (SOH, %) — da app NIU o tool diagnostico') ?>
         <input type="number" name="battery_soh" min="0" max="100" required value="<?= h((string)($R['battery_soh'] ?? '')) ?>">
       </label>
       <?php foreach ($CHECKLIST as $section => $items): ?>
-        <fieldset><legend><?= h($section) ?></legend>
+        <fieldset><legend><?= h(t($section)) ?></legend>
         <?php foreach ($items as $id => [$label, $w, $cats]): ?>
           <div class="chk" data-cats="<?= h(implode(',', $cats ?? [])) ?>">
-            <span><?= h($label) ?><?php if (in_array($id, BLOCKERS, true)): ?> <small class="red">• bloccante</small><?php endif; ?></span>
+            <span><?= h(t($label)) ?><?php if (in_array($id, BLOCKERS, true)): ?> <small class="red"><?= t('• bloccante') ?></small><?php endif; ?></span>
             <div class="seg">
-              <?php foreach (['ok' => 'OK', 'usura' => 'Usura', 'difetto' => 'Difetto', 'na' => 'N/A'] as $v => $l): ?>
+              <?php foreach (['ok' => t('OK'), 'usura' => t('Usura'), 'difetto' => t('Difetto'), 'na' => t('N/A')] as $v => $l): ?>
                 <label><input type="radio" name="a[<?= $id ?>]" value="<?= $v ?>" <?= $v === (isset($pre[$id]) && $pre[$id] !== 'na' ? $pre[$id] : 'ok') ? 'checked' : '' ?>><span><?= $l ?></span></label>
               <?php endforeach; ?>
             </div>
@@ -211,8 +211,8 @@ case 'valuta':
         <?php endforeach; ?>
         </fieldset>
       <?php endforeach; ?>
-      <label>Note del tecnico <textarea name="notes" rows="3"></textarea></label>
-      <button class="btn">Calcola valutazione</button>
+      <label><?= t('Note del tecnico') ?> <textarea name="notes" rows="3"></textarea></label>
+      <button class="btn"><?= t('Calcola valutazione') ?></button>
     </form>
     <script>
     const sel = document.getElementById('model'), other = document.getElementById('other');
@@ -235,7 +235,7 @@ case 'valutazione':
     $st = db()->prepare('SELECT v.*, u.company FROM valuations v JOIN users u ON u.id = v.dealer_id WHERE v.id = ?');
     $st->execute([(int)($_GET['id'] ?? 0)]);
     $v = $st->fetch();
-    if (!$v || ($u['role'] === 'dealer' && (int)$v['dealer_id'] !== (int)$u['id'])) { http_response_code(404); exit('Non trovato'); }
+    if (!$v || ($u['role'] === 'dealer' && (int)$v['dealer_id'] !== (int)$u['id'])) { http_response_code(404); exit(t('Non trovato')); }
 
     if ($POST && $u['role'] === 'dealer') {
         $new = !empty($_POST['new_purchase']);
@@ -244,7 +244,7 @@ case 'valutazione':
         db()->prepare('UPDATE valuations SET trade_in_price=?, new_purchase=?, new_model=?, incentive_niu=?, incentive_dealer=?, status=? WHERE id=?')
             ->execute([(int)($_POST['trade_in_price'] ?? 0) ?: null, $new ? 1 : 0, $new ? ($_POST['new_model'] ?? null) : null,
                        $status === 'ritirato' ? $niu : 0, $status === 'ritirato' ? $dealer : 0, $status, $v['id']]);
-        flash($status === 'ritirato' ? 'Ritiro registrato.' : 'Valutazione archiviata senza ritiro.');
+        flash($status === 'ritirato' ? t('Ritiro registrato.') : t('Valutazione archiviata senza ritiro.'));
         redirect('valutazione', ['id' => $v['id']]);
     }
 
@@ -252,62 +252,62 @@ case 'valutazione':
     $answers = json_decode($v['answers_json'] ?? '{}', true);
     [$niuPrev, $dealerPrev] = incentives($v['category'], $v['grade'], false);
     [$niuNew, $dealerNew]   = incentives($v['category'], $v['grade'], true);
-    page_start('Valutazione #' . $v['id']); ?>
-    <h1>VALUTAZIONE <em>#<?= $v['id'] ?></em></h1>
+    page_start(t('Valutazione') . ' #' . $v['id']); ?>
+    <h1><?= t('VALUTAZIONE') ?> <em>#<?= $v['id'] ?></em></h1>
     <div class="result">
       <div class="big-grade g-<?= h($v['grade']) ?>"><?= h($v['grade']) ?></div>
       <div>
-        <h2><?= h($v['model']) ?> · <?= h((string)$v['year']) ?> · <?= number_format((int)$v['km'], 0, ',', '.') ?> km</h2>
-        <p><b><?= (int)$v['score'] ?>/100</b> — <?= h($CFG['grades'][$v['grade']]['label']) ?></p>
-        <p class="muted">Telaio <?= h($v['vin']) ?> · SOH batteria <?= (int)$v['battery_soh'] ?>% · Dealer <?= h($v['company']) ?> · <?= h($v['created_at']) ?></p>
-        <?php if ($v['blockers']): ?><div class="flash err"><b>Motivi di non idoneità:</b><br><?= nl2br(h($v['blockers'])) ?></div><?php endif; ?>
+        <h2><?= h($v['model']) ?> · <?= h((string)$v['year']) ?> · <?= nf((int)$v['km']) ?> <?= t('km') ?></h2>
+        <p><b><?= (int)$v['score'] ?>/100</b> — <?= h(t($CFG['grades'][$v['grade']]['label'])) ?></p>
+        <p class="muted"><?= t('Telaio') ?> <?= h($v['vin']) ?> <?= t('· SOH batteria') ?> <?= (int)$v['battery_soh'] ?><?= t('% · Dealer') ?> <?= h($v['company']) ?> · <?= h($v['created_at']) ?></p>
+        <?php if ($v['blockers']): ?><div class="flash err"><b><?= t('Motivi di non idoneità:') ?></b><br><?= nl2br(h(implode("\n", array_map('t', explode("\n", $v['blockers']))))) ?></div><?php endif; ?>
       </div>
     </div>
 
     <?php if ($v['status'] === 'valutato' && $u['role'] === 'dealer'): ?>
     <form method="post" class="card"><?= csrf() ?>
-      <h2>Ritiro e supporto NIU</h2>
+      <h2><?= t('Ritiro e supporto NIU') ?></h2>
       <div class="split">
-        <div class="offer"><span>Ritiro semplice</span><b><?= eur($niuPrev) ?></b><small>extra NIU al dealer</small></div>
-        <div class="offer hl"><span>Ritiro + acquisto NIU nuovo</span><b><?= eur($niuNew) ?></b><small>extra NIU + <?= eur($dealerNew) ?> suggeriti dal dealer al cliente</small></div>
+        <div class="offer"><span><?= t('Ritiro semplice') ?></span><b><?= eur($niuPrev) ?></b><small><?= t('extra NIU al dealer') ?></small></div>
+        <div class="offer hl"><span><?= t('Ritiro + acquisto NIU nuovo') ?></span><b><?= eur($niuNew) ?></b><small><?= t('extra NIU + {amount} suggeriti dal dealer al cliente', ['amount' => eur($dealerNew)]) ?></small></div>
       </div>
-      <p class="muted">Importi di esempio, da definire con il team NIU (file <code>app/config.php</code>).</p>
+      <p class="muted"><?= t('Importi di esempio, da definire con il team NIU (file {file}).', ['file' => '<code>app/config.php</code>']) ?></p>
       <div class="grid3">
-        <label>Prezzo di ritiro offerto al cliente (€) <input type="number" name="trade_in_price" min="0"></label>
-        <label class="check"><input type="checkbox" name="new_purchase" value="1" id="np"> Il cliente acquista un NIU nuovo</label>
-        <label>Modello nuovo
+        <label><?= t('Prezzo di ritiro offerto al cliente (€)') ?> <input type="number" name="trade_in_price" min="0"></label>
+        <label class="check"><input type="checkbox" name="new_purchase" value="1" id="np"> <?= t('Il cliente acquista un NIU nuovo') ?></label>
+        <label><?= t('Modello nuovo') ?>
           <select name="new_model"><option value="">—</option><?php foreach (array_keys($CFG['categories']) as $c) foreach ($MODELS[$c] as $m): ?><option><?= h($m) ?></option><?php endforeach; ?></select>
         </label>
       </div>
       <div class="row">
-        <button class="btn" name="action" value="ritira" >Registra ritiro</button>
-        <button class="btn ghost" name="action" value="no">Non ritirato</button>
+        <button class="btn" name="action" value="ritira" ><?= t('Registra ritiro') ?></button>
+        <button class="btn ghost" name="action" value="no"><?= t('Non ritirato') ?></button>
       </div>
     </form>
     <?php else: ?>
     <section class="card">
-      <h2>Esito</h2>
-      <p>Stato: <b><?= $v['status'] === 'ritirato' ? 'Ritirato dal dealer' : ($v['status'] === 'valutato' ? 'In attesa di decisione' : 'Non ritirato') ?></b></p>
+      <h2><?= t('Esito') ?></h2>
+      <p><?= t('Stato:') ?> <b><?= $v['status'] === 'ritirato' ? t('Ritirato dal dealer') : ($v['status'] === 'valutato' ? t('In attesa di decisione') : t('Non ritirato')) ?></b></p>
       <?php if ($v['status'] === 'ritirato'): ?>
-        <p>Prezzo di ritiro: <b><?= $v['trade_in_price'] ? eur($v['trade_in_price']) : '—' ?></b>
-        · Acquisto NIU nuovo: <b><?= $v['new_purchase'] ? 'Sì — ' . h($v['new_model'] ?: 'modello n.d.') : 'No' ?></b></p>
-        <p>Extra NIU: <b><?= eur($v['incentive_niu']) ?></b> · Supporto dealer: <b><?= eur($v['incentive_dealer']) ?></b></p>
+        <p><?= t('Prezzo di ritiro:') ?> <b><?= $v['trade_in_price'] ? eur($v['trade_in_price']) : '—' ?></b>
+        <?= t('· Acquisto NIU nuovo:') ?> <b><?= $v['new_purchase'] ? 'Sì — ' . h($v['new_model'] ?: t('modello n.d.')) : t('No') ?></b></p>
+        <p><?= t('Extra NIU:') ?> <b><?= eur($v['incentive_niu']) ?></b> <?= t('· Supporto dealer:') ?> <b><?= eur($v['incentive_dealer']) ?></b></p>
         <?php if ($u['role'] === 'dealer' && $v['grade'] !== 'D'):
             $st = db()->prepare('SELECT id FROM listings WHERE valuation_id = ?'); $st->execute([$v['id']]); $lid = $st->fetchColumn(); ?>
-          <a class="btn" href="<?= $lid ? url('annuncio_edit', ['id' => $lid]) : url('annuncio_edit', ['from' => $v['id']]) ?>"><?= $lid ? 'Apri annuncio' : 'Crea annuncio 2nd Hand' ?></a>
+          <a class="btn" href="<?= $lid ? url('annuncio_edit', ['id' => $lid]) : url('annuncio_edit', ['from' => $v['id']]) ?>"><?= $lid ? t('Apri annuncio') : t('Crea annuncio 2nd Hand') ?></a>
         <?php endif; ?>
       <?php endif; ?>
     </section>
     <?php endif; ?>
 
-    <details class="card"><summary>Dati portale e checklist compilata</summary>
+    <details class="card"><summary><?= t('Dati portale e checklist compilata') ?></summary>
       <?php render_portal($portal); ?>
       <table class="tbl">
       <?php foreach ($CHECKLIST as $section => $items): foreach ($items as $id => [$label]): if (!isset($answers[$id])) continue; ?>
-        <tr><td class="muted"><?= h($section) ?></td><td><?= h($label) ?></td><td><span class="ans a-<?= h($answers[$id]) ?>"><?= h(strtoupper($answers[$id])) ?></span></td></tr>
+        <tr><td class="muted"><?= h(t($section)) ?></td><td><?= h(t($label)) ?></td><td><span class="ans a-<?= h($answers[$id]) ?>"><?= h(mb_strtoupper(t(['ok' => 'OK', 'usura' => 'Usura', 'difetto' => 'Difetto', 'na' => 'N/A'][$answers[$id]] ?? $answers[$id]))) ?></span></td></tr>
       <?php endforeach; endforeach; ?>
       </table>
-      <?php if ($v['notes']): ?><p><b>Note:</b> <?= nl2br(h($v['notes'])) ?></p><?php endif; ?>
+      <?php if ($v['notes']): ?><p><b><?= t('Note:') ?></b> <?= nl2br(h($v['notes'])) ?></p><?php endif; ?>
     </details>
     <?php page_end(); break;
 
@@ -318,16 +318,16 @@ case 'annuncio_edit':
     if ($id) {
         $st = db()->prepare('SELECT * FROM listings WHERE id = ? AND dealer_id = ?');
         $st->execute([$id, $u['id']]); $L = $st->fetch();
-        if (!$L) { http_response_code(404); exit('Non trovato'); }
+        if (!$L) { http_response_code(404); exit(t('Non trovato')); }
     } else {
         $st = db()->prepare("SELECT * FROM valuations WHERE id = ? AND dealer_id = ? AND status = 'ritirato' AND grade != 'D'");
         $st->execute([(int)($_GET['from'] ?? 0), $u['id']]); $v = $st->fetch();
-        if (!$v) { flash('Puoi creare un annuncio solo da una valutazione con ritiro registrato e classe A–C.', 'err'); redirect('home'); }
+        if (!$v) { flash(t('Puoi creare un annuncio solo da una valutazione con ritiro registrato e classe A–C.'), 'err'); redirect('home'); }
         $st = db()->prepare('SELECT id FROM listings WHERE valuation_id = ?'); $st->execute([$v['id']]);
         if ($ex = $st->fetchColumn()) redirect('annuncio_edit', ['id' => $ex]);
         db()->prepare('INSERT INTO listings (dealer_id, valuation_id, model, category, year, km, grade, title, description, price, city, contact) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
             ->execute([$u['id'], $v['id'], $v['model'], $v['category'], $v['year'], $v['km'], $v['grade'],
-                       "NIU {$v['model']} usato — classe {$v['grade']}", '', 0, $u['city'] ?? '', $u['company'] ?? '']);
+                       t('NIU {model} usato — classe {grade}', ['model' => $v['model'], 'grade' => $v['grade']]), '', 0, $u['city'] ?? '', $u['company'] ?? '']);
         redirect('annuncio_edit', ['id' => db()->lastInsertId()]);
     }
     $editable = in_array($L['status'], ['bozza', 'rifiutato'], true);
@@ -342,7 +342,7 @@ case 'annuncio_edit':
         }
         if (in_array($act, ['venduto', 'ritirato'], true) && $L['status'] === 'pubblicato') {
             db()->prepare("UPDATE listings SET status = ?, updated_at = datetime('now') WHERE id = ?")->execute([$act, $L['id']]);
-            flash('Annuncio aggiornato.'); redirect('annunci');
+            flash(t('Annuncio aggiornato.')); redirect('annunci');
         }
         if (!$editable) redirect('annuncio_edit', ['id' => $L['id']]);
 
@@ -360,63 +360,63 @@ case 'annuncio_edit':
                 } else $bad++;
             }
         }
-        if ($bad) flash("$bad foto non accettate (formati JPG/PNG/WEBP, max " . ($CFG['photos']['max_bytes'] >> 20) . ' MB).', 'err');
+        if ($bad) flash(t('{n} foto non accettate (formati JPG/PNG/WEBP, max {mb} MB).', ['n' => $bad, 'mb' => $CFG['photos']['max_bytes'] >> 20]), 'err');
 
         if ($act === 'submit') {
             $err = [];
-            if ($n < $CFG['photos']['min']) $err[] = "almeno {$CFG['photos']['min']} foto";
-            if (mb_strlen(trim($_POST['description'] ?? '')) < 80) $err[] = 'una descrizione di almeno 80 caratteri';
-            if ((int)($_POST['price'] ?? 0) <= 0) $err[] = 'un prezzo';
-            if (trim($_POST['city'] ?? '') === '') $err[] = 'la località';
-            if ($err) { flash('Per inviare a NIU servono: ' . implode(', ', $err) . '.', 'err'); redirect('annuncio_edit', ['id' => $L['id']]); }
+            if ($n < $CFG['photos']['min']) $err[] = t('almeno {n} foto', ['n' => $CFG['photos']['min']]);
+            if (mb_strlen(trim($_POST['description'] ?? '')) < 80) $err[] = t('una descrizione di almeno 80 caratteri');
+            if ((int)($_POST['price'] ?? 0) <= 0) $err[] = t('un prezzo');
+            if (trim($_POST['city'] ?? '') === '') $err[] = t('la località');
+            if ($err) { flash(t('Per inviare a NIU servono: {list}.', ['list' => implode(', ', $err)]), 'err'); redirect('annuncio_edit', ['id' => $L['id']]); }
             db()->prepare("UPDATE listings SET status='in_revisione', review_note=NULL WHERE id=?")->execute([$L['id']]);
-            flash('Annuncio inviato al team NIU per l\'approvazione.'); redirect('annunci');
+            flash(t('Annuncio inviato al team NIU per l\'approvazione.')); redirect('annunci');
         }
-        flash('Bozza salvata.'); redirect('annuncio_edit', ['id' => $L['id']]);
+        flash(t('Bozza salvata.')); redirect('annuncio_edit', ['id' => $L['id']]);
     }
 
     $photos = listing_photos($L['id']);
-    page_start('Annuncio'); ?>
-    <h1>ANNUNCIO <em><?= h($L['model']) ?></em> <?= grade_badge($L['grade']) ?> <?= status_badge($L['status']) ?></h1>
-    <?php if ($L['status'] === 'rifiutato' && $L['review_note']): ?><div class="flash err"><b>Nota del team NIU:</b> <?= nl2br(h($L['review_note'])) ?></div><?php endif; ?>
+    page_start(t('Annuncio')); ?>
+    <h1><?= t('ANNUNCIO') ?> <em><?= h($L['model']) ?></em> <?= grade_badge($L['grade']) ?> <?= status_badge($L['status']) ?></h1>
+    <?php if ($L['status'] === 'rifiutato' && $L['review_note']): ?><div class="flash err"><b><?= t('Nota del team NIU:') ?></b> <?= nl2br(h($L['review_note'])) ?></div><?php endif; ?>
     <form method="post" enctype="multipart/form-data" class="card" id="lform"><?= csrf() ?>
       <fieldset <?= $editable ? '' : 'disabled' ?>>
-      <label>Titolo <input name="title" maxlength="120" required value="<?= h($L['title']) ?>"></label>
-      <label>Descrizione <small class="muted">— stato, interventi eseguiti, accessori inclusi, garanzia residua</small>
+      <label><?= t('Titolo') ?> <input name="title" maxlength="120" required value="<?= h($L['title']) ?>"></label>
+      <label><?= t('Descrizione') ?> <small class="muted"><?= t('— stato, interventi eseguiti, accessori inclusi, garanzia residua') ?></small>
         <textarea name="description" rows="7"><?= h($L['description']) ?></textarea></label>
       <div class="grid3">
-        <label>Prezzo (€) <input type="number" name="price" min="0" value="<?= (int)$L['price'] ?: '' ?>"></label>
-        <label>Chilometri <input type="number" name="km" min="0" value="<?= (int)$L['km'] ?>"></label>
-        <label>Contatto mostrato <input name="contact" value="<?= h($L['contact']) ?>" placeholder="Nome concessionaria, telefono"></label>
-        <label>Città <input name="city" value="<?= h($L['city']) ?>"></label>
-        <label>Provincia <input name="province" maxlength="4" value="<?= h($L['province']) ?>" placeholder="MI"></label>
+        <label><?= t('Prezzo (€)') ?> <input type="number" name="price" min="0" value="<?= (int)$L['price'] ?: '' ?>"></label>
+        <label><?= t('Chilometri') ?> <input type="number" name="km" min="0" value="<?= (int)$L['km'] ?>"></label>
+        <label><?= t('Contatto mostrato') ?> <input name="contact" value="<?= h($L['contact']) ?>" placeholder="<?= h(t('Nome concessionaria, telefono')) ?>"></label>
+        <label><?= t('Città') ?> <input name="city" value="<?= h($L['city']) ?>"></label>
+        <label><?= t('Provincia') ?> <input name="province" maxlength="4" value="<?= h($L['province']) ?>" placeholder="MI"></label>
       </div>
 
-      <h2>Foto <small class="muted"><?= count($photos) ?>/<?= $CFG['photos']['max'] ?> — minimo <?= $CFG['photos']['min'] ?>. La prima è la copertina.</small></h2>
+      <h2><?= t('Foto') ?> <small class="muted"><?= count($photos) ?>/<?= $CFG['photos']['max'] ?> <?= t('— minimo {n}. La prima è la copertina.', ['n' => $CFG['photos']['min']]) ?></small></h2>
       <div class="thumbs">
         <?php foreach ($photos as $ph): ?>
           <div class="thumb"><img src="<?= url('img', ['f' => $ph['file']]) ?>" alt="">
-            <?php if ($editable): ?><button class="x" form="del<?= $ph['id'] ?>" title="Elimina">×</button><?php endif; ?></div>
+            <?php if ($editable): ?><button class="x" form="del<?= $ph['id'] ?>" title="<?= h(t('Elimina')) ?>"><?= t('×') ?></button><?php endif; ?></div>
         <?php endforeach; ?>
       </div>
       <?php if ($editable && count($photos) < $CFG['photos']['max']): ?>
         <label class="drop">
           <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple id="files">
-          <span>Trascina qui le foto o <u>sfoglia</u><br><small>Suggerite: 3/4 anteriore, laterale dx e sx, posteriore, cruscotto, batteria, eventuali difetti</small></span>
+          <span><?= t('Trascina qui le foto o <u>sfoglia</u>') ?><br><small><?= t('Suggerite: 3/4 anteriore, laterale dx e sx, posteriore, cruscotto, batteria, eventuali difetti') ?></small></span>
         </label>
         <div class="thumbs" id="preview"></div>
       <?php endif; ?>
       </fieldset>
       <div class="row">
         <?php if ($editable): ?>
-          <button class="btn ghost" name="action" value="save">Salva bozza</button>
-          <button class="btn" name="action" value="submit">Invia a NIU per approvazione</button>
+          <button class="btn ghost" name="action" value="save"><?= t('Salva bozza') ?></button>
+          <button class="btn" name="action" value="submit"><?= t('Invia a NIU per approvazione') ?></button>
         <?php elseif ($L['status'] === 'pubblicato'): ?>
-          <a class="btn ghost" href="<?= url('annuncio', ['id' => $L['id']]) ?>" target="_blank">Vedi online</a>
-          <button class="btn" name="action" value="venduto">Segna come venduto</button>
-          <button class="btn ghost" name="action" value="ritirato">Ritira annuncio</button>
+          <a class="btn ghost" href="<?= url('annuncio', ['id' => $L['id']]) ?>" target="_blank"><?= t('Vedi online') ?></a>
+          <button class="btn" name="action" value="venduto"><?= t('Segna come venduto') ?></button>
+          <button class="btn ghost" name="action" value="ritirato"><?= t('Ritira annuncio') ?></button>
         <?php else: ?>
-          <p class="muted">L'annuncio non è modificabile in questo stato.</p>
+          <p class="muted"><?= t('L\'annuncio non è modificabile in questo stato.') ?></p>
         <?php endif; ?>
       </div>
     </form>
@@ -436,8 +436,8 @@ case 'annunci':
     $u = require_login('dealer');
     $st = db()->prepare('SELECT l.*, (SELECT file FROM photos WHERE listing_id = l.id ORDER BY sort, id LIMIT 1) cover FROM listings l WHERE dealer_id = ? ORDER BY id DESC');
     $st->execute([$u['id']]);
-    page_start('I miei annunci'); ?>
-    <h1>I MIEI <em>ANNUNCI</em></h1>
+    page_start(t('I miei annunci')); ?>
+    <h1><?= t('I MIEI <em>ANNUNCI</em>') ?></h1>
     <?php render_listing_table($st->fetchAll(), 'annuncio_edit');
     page_end(); break;
 
@@ -448,35 +448,35 @@ case 'revisione':
     if ($id) {
         $st = db()->prepare('SELECT l.*, u.company, u.email FROM listings l JOIN users u ON u.id = l.dealer_id WHERE l.id = ?');
         $st->execute([$id]); $L = $st->fetch();
-        if (!$L) { http_response_code(404); exit('Non trovato'); }
+        if (!$L) { http_response_code(404); exit(t('Non trovato')); }
         if ($POST) {
             $act = $_POST['action'] ?? '';
             if ($act === 'approva') {
                 db()->prepare("UPDATE listings SET status='pubblicato', review_note=NULL, published_at=datetime('now') WHERE id=?")->execute([$id]);
-                flash('Annuncio pubblicato nella vetrina 2nd Hand.');
+                flash(t('Annuncio pubblicato nella vetrina 2nd Hand.'));
             } elseif ($act === 'rifiuta') {
                 $note = trim($_POST['note'] ?? '');
-                if ($note === '') { flash('Scrivi al dealer cosa correggere.', 'err'); redirect('revisione', ['id' => $id]); }
+                if ($note === '') { flash(t('Scrivi al dealer cosa correggere.'), 'err'); redirect('revisione', ['id' => $id]); }
                 db()->prepare("UPDATE listings SET status='rifiutato', review_note=? WHERE id=?")->execute([$note, $id]);
-                flash('Annuncio rimandato al dealer.');
+                flash(t('Annuncio rimandato al dealer.'));
             } elseif ($act === 'sospendi') {
                 db()->prepare("UPDATE listings SET status='ritirato' WHERE id=?")->execute([$id]);
-                flash('Annuncio rimosso dalla vetrina.');
+                flash(t('Annuncio rimosso dalla vetrina.'));
             }
             redirect('revisione');
         }
-        page_start('Revisione annuncio');
+        page_start(t('Revisione annuncio'));
         render_listing_detail($L, true); ?>
         <form method="post" class="card"><?= csrf() ?>
-          <h2>Decisione NIU</h2>
-          <p class="muted">Dealer: <?= h($L['company']) ?> (<?= h($L['email']) ?>)<?php if ($L['valuation_id']): ?> · <a href="<?= url('valutazione', ['id' => $L['valuation_id']]) ?>">valutazione #<?= $L['valuation_id'] ?></a><?php endif; ?></p>
-          <label>Nota per il dealer (obbligatoria se rimandi indietro) <textarea name="note" rows="3"></textarea></label>
+          <h2><?= t('Decisione NIU') ?></h2>
+          <p class="muted"><?= t('Dealer:') ?> <?= h($L['company']) ?> (<?= h($L['email']) ?>)<?php if ($L['valuation_id']): ?> · <a href="<?= url('valutazione', ['id' => $L['valuation_id']]) ?>"><?= t('valutazione #') ?><?= $L['valuation_id'] ?></a><?php endif; ?></p>
+          <label><?= t('Nota per il dealer (obbligatoria se rimandi indietro)') ?> <textarea name="note" rows="3"></textarea></label>
           <div class="row">
             <?php if ($L['status'] === 'in_revisione'): ?>
-              <button class="btn" name="action" value="approva">Approva e pubblica</button>
-              <button class="btn ghost" name="action" value="rifiuta">Rimanda al dealer</button>
+              <button class="btn" name="action" value="approva"><?= t('Approva e pubblica') ?></button>
+              <button class="btn ghost" name="action" value="rifiuta"><?= t('Rimanda al dealer') ?></button>
             <?php elseif ($L['status'] === 'pubblicato'): ?>
-              <button class="btn ghost" name="action" value="sospendi">Rimuovi dalla vetrina</button>
+              <button class="btn ghost" name="action" value="sospendi"><?= t('Rimuovi dalla vetrina') ?></button>
             <?php endif; ?>
           </div>
         </form>
@@ -486,17 +486,17 @@ case 'revisione':
                          FROM listings l JOIN users u ON u.id = l.dealer_id
                          WHERE l.status IN ('in_revisione','pubblicato','rifiutato')
                          ORDER BY CASE l.status WHEN 'in_revisione' THEN 0 ELSE 1 END, l.id DESC")->fetchAll();
-    page_start('Revisione annunci'); ?>
-    <h1>REVISIONE <em>ANNUNCI</em></h1>
+    page_start(t('Revisione annunci')); ?>
+    <h1><?= t('REVISIONE <em>ANNUNCI</em>') ?></h1>
     <?php render_listing_table($rows, 'revisione', true);
     page_end(); break;
 
 // ===========================================================================
 case 'valutazioni':
     require_login('niu');
-    page_start('Valutazioni'); ?>
-    <h1>TUTTE LE <em>VALUTAZIONI</em></h1>
-    <p><a class="btn ghost" href="<?= url('export') ?>">Scarica CSV</a></p>
+    page_start(t('Valutazioni')); ?>
+    <h1><?= t('TUTTE LE <em>VALUTAZIONI</em>') ?></h1>
+    <p><a class="btn ghost" href="<?= url('export') ?>"><?= t('Scarica CSV') ?></a></p>
     <?php render_valuations(db()->query('SELECT v.*, u.company FROM valuations v JOIN users u ON u.id = v.dealer_id ORDER BY v.id DESC')->fetchAll(), true);
     page_end(); break;
 
@@ -505,10 +505,10 @@ case 'export':
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="valutazioni-2nd-hand-' . date('Ymd') . '.csv"');
     $out = fopen('php://output', 'w'); fwrite($out, "\xEF\xBB\xBF");
-    fputcsv($out, ['ID', 'Data', 'Dealer', 'Telaio', 'Modello', 'Anno', 'Km', 'SOH %', 'Punteggio', 'Classe', 'Stato', 'Prezzo ritiro', 'Acquisto nuovo', 'Modello nuovo', 'Extra NIU', 'Supporto dealer'], ';');
+    fputcsv($out, ['ID', t('Data'), t('Dealer'), t('Telaio'), t('Modello'), t('Anno'), t('Km'), t('SOH %'), t('Punteggio'), t('Classe'), t('Stato'), t('Prezzo ritiro'), t('Acquisto nuovo'), t('Modello nuovo'), t('Extra NIU'), t('Supporto dealer')], ';');
     foreach (db()->query('SELECT v.*, u.company FROM valuations v JOIN users u ON u.id = v.dealer_id ORDER BY v.id') as $r) {
         fputcsv($out, [$r['id'], $r['created_at'], $r['company'], $r['vin'], $r['model'], $r['year'], $r['km'], $r['battery_soh'], $r['score'], $r['grade'],
-                       $r['status'], $r['trade_in_price'], $r['new_purchase'] ? 'Sì' : 'No', $r['new_model'], $r['incentive_niu'], $r['incentive_dealer']], ';');
+                       $r['status'], $r['trade_in_price'], $r['new_purchase'] ? t('Sì') : t('No'), $r['new_model'], $r['incentive_niu'], $r['incentive_dealer']], ';');
     }
     exit;
 
@@ -521,32 +521,32 @@ case 'dealer':
             redirect('dealer');
         }
         $email = trim(strtolower($_POST['email'] ?? ''));
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || trim($_POST['company'] ?? '') === '') { flash('Email e ragione sociale obbligatorie.', 'err'); redirect('dealer'); }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || trim($_POST['company'] ?? '') === '') { flash(t('Email e ragione sociale obbligatorie.'), 'err'); redirect('dealer'); }
         $pw = substr(strtr(base64_encode(random_bytes(12)), '+/=', 'xyz'), 0, 14);
         try {
             db()->prepare("INSERT INTO users (email, pass, role, name, company, city, address, phone) VALUES (?,?,'dealer',?,?,?,?,?)")
                 ->execute([$email, password_hash($pw, PASSWORD_DEFAULT), trim($_POST['name'] ?? ''), trim($_POST['company']), trim($_POST['city'] ?? ''),
                            trim($_POST['address'] ?? ''), trim($_POST['phone'] ?? '')]);
-            flash("Dealer creato. Password iniziale per $email: $pw — comunicala al dealer, non verrà più mostrata.");
-        } catch (PDOException) { flash('Esiste già un utente con questa email.', 'err'); }
+            flash(t('Dealer creato. Password iniziale per {email}: {pw} — comunicala al dealer, non verrà più mostrata.', ['email' => $email, 'pw' => $pw]));
+        } catch (PDOException) { flash(t('Esiste già un utente con questa email.'), 'err'); }
         redirect('dealer');
     }
-    page_start('Dealer'); ?>
-    <h1>DEALER <em>AUTORIZZATI</em></h1>
+    page_start(t('Dealer')); ?>
+    <h1><?= t('DEALER <em>AUTORIZZATI</em>') ?></h1>
     <form method="post" class="card"><?= csrf() ?>
-      <h2>Aggiungi dealer</h2>
+      <h2><?= t('Aggiungi dealer') ?></h2>
       <div class="grid3">
-        <label>Ragione sociale <input name="company" required></label>
-        <label>Referente <input name="name"></label>
-        <label>Città <input name="city"></label>
-        <label>Indirizzo <input name="address" placeholder="Via, civico, CAP"></label>
-        <label>Telefono <input name="phone"></label>
-        <label>Email di accesso <input type="email" name="email" required></label>
+        <label><?= t('Ragione sociale') ?> <input name="company" required></label>
+        <label><?= t('Referente') ?> <input name="name"></label>
+        <label><?= t('Città') ?> <input name="city"></label>
+        <label><?= t('Indirizzo') ?> <input name="address" placeholder="<?= h(t('Via, civico, CAP')) ?>"></label>
+        <label><?= t('Telefono') ?> <input name="phone"></label>
+        <label><?= t('Email di accesso') ?> <input type="email" name="email" required></label>
       </div>
-      <button class="btn">Crea dealer</button>
+      <button class="btn"><?= t('Crea dealer') ?></button>
     </form>
     <table class="tbl">
-      <tr><th>Dealer</th><th>Referente</th><th>Città</th><th>Email</th><th>Valutazioni</th><th>Annunci online</th><th></th></tr>
+      <tr><th><?= t('Dealer') ?></th><th><?= t('Referente') ?></th><th><?= t('Città') ?></th><th><?= t('Email') ?></th><th><?= t('Valutazioni') ?></th><th><?= t('Annunci online') ?></th><th></th></tr>
       <?php foreach (db()->query("SELECT u.*, (SELECT COUNT(*) FROM valuations WHERE dealer_id=u.id) nv, (SELECT COUNT(*) FROM listings WHERE dealer_id=u.id AND status='pubblicato') nl FROM users u WHERE role='dealer' ORDER BY company") as $d): ?>
         <tr class="<?= $d['active'] ? '' : 'off' ?>"><td><b><?= h($d['company']) ?></b></td><td><?= h($d['name']) ?></td><td><?= h($d['city']) ?></td><td><?= h($d['email']) ?></td><td><?= $d['nv'] ?></td><td><?= $d['nl'] ?></td>
           <td><form method="post" class="inline"><?= csrf() ?><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= $d['id'] ?>"><button class="link"><?= $d['active'] ? 'Disattiva' : 'Riattiva' ?></button></form></td></tr>

@@ -11,6 +11,9 @@ return [
 
     'app_name'   => 'NIU 2nd Hand',
 
+    // Multilingua (IT, EN, FR, DE, ES, NL). Spento = solo italiano, nessun selettore lingua.
+    'i18n_enabled' => false,
+
     // Foto annunci
     'photos' => [
         'min'       => 3,

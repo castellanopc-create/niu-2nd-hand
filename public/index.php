@@ -51,7 +51,7 @@ case 'login':
         if ($u && password_verify((string)($_POST['password'] ?? ''), $u['pass'])) {
             session_regenerate_id(true);
             $_SESSION['uid'] = (int)$u['id'];
-            redirect('home');
+            redirect($u['must_change'] ? 'password' : 'home');
         }
         usleep(400000);
         flash(t('Credenziali non valide.'), 'err'); redirect('login');
@@ -63,6 +63,57 @@ case 'login':
         <label><?= t('Email') ?> <input type="email" name="email" required autofocus></label>
         <label><?= t('Password') ?> <input type="password" name="password" required></label>
         <button class="btn"><?= t('Accedi') ?></button>
+      </form>
+      <p><a href="<?= url('password_dimenticata') ?>"><?= t('Password dimenticata?') ?></a></p>
+    </section>
+    <?php page_end(); break;
+
+// ===========================================================================
+case 'password_dimenticata':
+    if ($POST) {
+        if (empty($_POST['website'])) {   // honeypot anti-spam
+            db()->prepare("UPDATE users SET reset_requested_at = datetime('now') WHERE email = ? AND role = 'dealer' AND active = 1")
+                ->execute([trim(strtolower($_POST['email'] ?? ''))]);
+        }
+        usleep(300000);
+        // Stesso messaggio in ogni caso: non rivela quali email sono registrate
+        flash(t('Se l\'email è registrata, il team NIU ti invierà una nuova password temporanea.'));
+        redirect('login');
+    }
+    page_start(t('Password dimenticata?')); ?>
+    <section class="card narrow">
+      <h1><?= t('PASSWORD <em>DIMENTICATA</em>') ?></h1>
+      <p><?= t('Inserisci l\'email del tuo account dealer: il team NIU riceverà la richiesta e ti invierà una password temporanea.') ?></p>
+      <form method="post"><?= csrf() ?>
+        <input name="website" class="hidden" tabindex="-1" autocomplete="off">
+        <label><?= t('Email') ?> <input type="email" name="email" required autofocus></label>
+        <button class="btn"><?= t('Invia richiesta') ?></button>
+      </form>
+      <p><a href="<?= url('login') ?>"><?= t('← Torna all\'accesso') ?></a></p>
+    </section>
+    <?php page_end(); break;
+
+case 'password':
+    $u = user();
+    if (!$u) redirect('login');
+    if ($POST) {
+        $new = (string)($_POST['new'] ?? '');
+        if (!password_verify((string)($_POST['current'] ?? ''), $u['pass'])) { flash(t('La password attuale non è corretta.'), 'err'); redirect('password'); }
+        if (strlen($new) < 10 || $new !== (string)($_POST['confirm'] ?? '')) { flash(t('La nuova password deve avere almeno 10 caratteri e coincidere nei due campi.'), 'err'); redirect('password'); }
+        if (password_verify($new, $u['pass'])) { flash(t('La nuova password deve essere diversa da quella attuale.'), 'err'); redirect('password'); }
+        db()->prepare('UPDATE users SET pass = ?, must_change = 0, reset_requested_at = NULL WHERE id = ?')->execute([password_hash($new, PASSWORD_DEFAULT), $u['id']]);
+        session_regenerate_id(true);
+        flash(t('Password aggiornata.')); redirect('home');
+    }
+    page_start(t('Cambia password')); ?>
+    <section class="card narrow">
+      <h1><?= t('CAMBIA <em>PASSWORD</em>') ?></h1>
+      <?php if ($u['must_change']): ?><div class="flash"><?= t('Stai usando una password temporanea: scegline una nuova per continuare.') ?></div><?php endif; ?>
+      <form method="post"><?= csrf() ?>
+        <label><?= t('Password attuale') ?> <input type="password" name="current" required autocomplete="current-password"></label>
+        <label><?= t('Nuova password (min. 10 caratteri)') ?> <input type="password" name="new" minlength="10" required autocomplete="new-password"></label>
+        <label><?= t('Ripeti la nuova password') ?> <input type="password" name="confirm" minlength="10" required autocomplete="new-password"></label>
+        <button class="btn"><?= t('Salva password') ?></button>
       </form>
     </section>
     <?php page_end(); break;
@@ -520,19 +571,30 @@ case 'dealer':
             db()->prepare("UPDATE users SET active = 1 - active WHERE id = ? AND role = 'dealer'")->execute([(int)$_POST['id']]);
             redirect('dealer');
         }
+        if (($_POST['action'] ?? '') === 'reset') {
+            $st = db()->prepare("SELECT email FROM users WHERE id = ? AND role = 'dealer'"); $st->execute([(int)$_POST['id']]);
+            if ($email = $st->fetchColumn()) {
+                $pw = temp_password();
+                db()->prepare('UPDATE users SET pass = ?, must_change = 1, reset_requested_at = NULL WHERE id = ?')->execute([password_hash($pw, PASSWORD_DEFAULT), (int)$_POST['id']]);
+                flash(t('Nuova password temporanea per {email}: {pw} — comunicala al dealer, non verrà più mostrata. Al primo accesso dovrà cambiarla.', ['email' => $email, 'pw' => $pw]));
+            }
+            redirect('dealer');
+        }
         $email = trim(strtolower($_POST['email'] ?? ''));
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || trim($_POST['company'] ?? '') === '') { flash(t('Email e ragione sociale obbligatorie.'), 'err'); redirect('dealer'); }
-        $pw = substr(strtr(base64_encode(random_bytes(12)), '+/=', 'xyz'), 0, 14);
+        $pw = temp_password();
         try {
-            db()->prepare("INSERT INTO users (email, pass, role, name, company, city, address, phone) VALUES (?,?,'dealer',?,?,?,?,?)")
+            db()->prepare("INSERT INTO users (email, pass, role, name, company, city, address, phone, must_change) VALUES (?,?,'dealer',?,?,?,?,?,1)")
                 ->execute([$email, password_hash($pw, PASSWORD_DEFAULT), trim($_POST['name'] ?? ''), trim($_POST['company']), trim($_POST['city'] ?? ''),
                            trim($_POST['address'] ?? ''), trim($_POST['phone'] ?? '')]);
             flash(t('Dealer creato. Password iniziale per {email}: {pw} — comunicala al dealer, non verrà più mostrata.', ['email' => $email, 'pw' => $pw]));
         } catch (PDOException) { flash(t('Esiste già un utente con questa email.'), 'err'); }
         redirect('dealer');
     }
+    $pending = (int)db()->query("SELECT COUNT(*) FROM users WHERE role = 'dealer' AND reset_requested_at IS NOT NULL")->fetchColumn();
     page_start(t('Dealer')); ?>
     <h1><?= t('DEALER <em>AUTORIZZATI</em>') ?></h1>
+    <?php if ($pending): ?><div class="flash err"><?= t('{n} dealer hanno chiesto una nuova password: usa «Nuova password» nella tabella.', ['n' => $pending]) ?></div><?php endif; ?>
     <form method="post" class="card"><?= csrf() ?>
       <h2><?= t('Aggiungi dealer') ?></h2>
       <div class="grid3">
@@ -548,8 +610,9 @@ case 'dealer':
     <table class="tbl">
       <tr><th><?= t('Dealer') ?></th><th><?= t('Referente') ?></th><th><?= t('Città') ?></th><th><?= t('Email') ?></th><th><?= t('Valutazioni') ?></th><th><?= t('Annunci online') ?></th><th></th></tr>
       <?php foreach (db()->query("SELECT u.*, (SELECT COUNT(*) FROM valuations WHERE dealer_id=u.id) nv, (SELECT COUNT(*) FROM listings WHERE dealer_id=u.id AND status='pubblicato') nl FROM users u WHERE role='dealer' ORDER BY company") as $d): ?>
-        <tr class="<?= $d['active'] ? '' : 'off' ?>"><td><b><?= h($d['company']) ?></b></td><td><?= h($d['name']) ?></td><td><?= h($d['city']) ?></td><td><?= h($d['email']) ?></td><td><?= $d['nv'] ?></td><td><?= $d['nl'] ?></td>
-          <td><form method="post" class="inline"><?= csrf() ?><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= $d['id'] ?>"><button class="link"><?= $d['active'] ? 'Disattiva' : 'Riattiva' ?></button></form></td></tr>
+        <tr class="<?= $d['active'] ? '' : 'off' ?>"><td><b><?= h($d['company']) ?></b></td><td><?= h($d['name']) ?></td><td><?= h($d['city']) ?></td><td><?= h($d['email']) ?><?php if ($d['reset_requested_at']): ?><br><span class="badge warn"><?= t('Reset password richiesto') ?></span><?php endif; ?></td><td><?= $d['nv'] ?></td><td><?= $d['nl'] ?></td>
+          <td><form method="post" class="inline"><?= csrf() ?><input type="hidden" name="action" value="reset"><input type="hidden" name="id" value="<?= $d['id'] ?>"><button class="link"><?= t('Nuova password') ?></button></form>
+            · <form method="post" class="inline"><?= csrf() ?><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= $d['id'] ?>"><button class="link"><?= $d['active'] ? t('Disattiva') : t('Riattiva') ?></button></form></td></tr>
       <?php endforeach; ?>
     </table>
     <?php page_end(); break;

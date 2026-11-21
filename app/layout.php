@@ -34,6 +34,7 @@ function page_start(string $title, bool $public = false): void
     <?php if (!$u): ?><a href="<?= url('stima') ?>"><?= t('Valuta il tuo NIU') ?></a><?php endif; ?>
     <a href="<?= url('usato') ?>"><?= t('Vetrina usato') ?></a>
     <?php if ($u): ?>
+      <a href="<?= url('password') ?>"><?= t('Password') ?></a>
       <form method="post" action="<?= url('logout') ?>" class="inline"><?= csrf() ?><button class="link"><?= t('Esci') ?></button></form>
     <?php else: ?>
       <a href="<?= url('login') ?>"><?= t('Area dealer') ?></a>

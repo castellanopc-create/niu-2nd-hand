@@ -1,0 +1,5 @@
+# Analisi statica di app/ (logica condivisa). Livello da alzare solo con l'owner.
+parameters:
+    level: 5
+    paths:
+        - app

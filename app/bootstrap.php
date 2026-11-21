@@ -5,6 +5,7 @@ $CFG       = require __DIR__ . '/config.php';
 $MODELS    = require __DIR__ . '/models.php';
 $CHECKLIST = require __DIR__ . '/checklist.php';
 require __DIR__ . '/portal.php';
+require __DIR__ . '/i18n.php';
 
 // --- Sessione -------------------------------------------------------------
 $https = (($_SERVER['HTTPS'] ?? '') !== '' && $_SERVER['HTTPS'] !== 'off')
@@ -86,7 +87,8 @@ function db(): PDO
 
 // --- Helper ---------------------------------------------------------------
 function h(?string $s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function eur($n): string { return '€ ' . number_format((float)$n, 0, ',', '.'); }
+function nf($n): string { return lang() === 'en' ? number_format((float)$n, 0, '.', ',') : number_format((float)$n, 0, ',', (lang() === 'fr' ? "\u{202F}" : '.')); }
+function eur($n): string { return match (lang()) { 'en', 'nl' => '€' . (lang() === 'nl' ? ' ' : '') . nf($n), 'it' => '€ ' . nf($n), default => nf($n) . ' €' }; }
 function url(string $p, array $q = []): string { return '?' . http_build_query(['p' => $p] + $q); }
 function redirect(string $p, array $q = []): never { header('Location: ' . url($p, $q)); exit; }
 function flash(?string $msg = null, string $type = 'ok')
@@ -246,9 +248,9 @@ function free_slots(int $dealerId): array
 }
 function it_date(string $dt, bool $time = true): string
 {
-    $g = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+    $g = ['', t('lun'), t('mar'), t('mer'), t('gio'), t('ven'), t('sab'), t('dom')];
     $ts = strtotime($dt);
-    return $g[(int)date('N', $ts)] . ' ' . date('d/m/Y', $ts) . ($time ? ' ore ' . date('H:i', $ts) : '');
+    return $g[(int)date('N', $ts)] . ' ' . date('d/m/Y', $ts) . ($time ? ' ' . t('ore') . ' ' . date('H:i', $ts) : '');
 }
 function dealers(): array
 {

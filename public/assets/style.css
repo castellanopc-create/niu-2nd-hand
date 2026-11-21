@@ -138,3 +138,11 @@ form.inline { display: inline; }
 .day b { display: block; font-size: 14px; margin-bottom: 4px; text-transform: capitalize; }
 .seg.wrap { flex-wrap: wrap; }
 .seg.wrap span { margin-bottom: -1px; }
+
+.lang { position: relative; }
+.lang summary { list-style: none; cursor: pointer; font-weight: 600; font-size: 14px; border: 1px solid #fff; padding: 2px 8px; color: #fff; }
+.lang summary::-webkit-details-marker { display: none; }
+.lang[open] summary { background: #fff; color: #000; }
+.lang div { position: absolute; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid #000; z-index: 10; min-width: 140px; }
+.lang div a { display: block; color: #000 !important; padding: 8px 12px; font-size: 14px; }
+.lang div a:hover, .lang div a.on { background: #000; color: #fff !important; }

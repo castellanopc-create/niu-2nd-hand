@@ -11,11 +11,21 @@ $port = 18000 + random_int(0, 999);
 $cmd = sprintf('NIU2H_SHARED=%s exec php -S 127.0.0.1:%d -t %s', escapeshellarg($shared), $port, escapeshellarg("$root/public"));
 $proc = proc_open($cmd, [1 => ['file', '/dev/null', 'w'], 2 => ['file', "$shared/server.log", 'w']], $pipes);
 register_shutdown_function(function () use ($proc) { proc_terminate($proc); });
-usleep(600000);
+// aspetta che il server risponda (max 10 s)
+for ($i = 0; $i < 100; $i++) {
+    $fp = @fsockopen('127.0.0.1', $port, $e1, $e2, 0.2);
+    if ($fp) { fclose($fp); break; }
+    usleep(100000);
+}
 
 $base = "http://127.0.0.1:$port/";
 $fails = 0;
-function ok(bool $c, string $msg): void { global $fails; echo ($c ? "  ok   " : "  FAIL ") . $msg . "\n"; if (!$c) $fails++; }
+function ok(bool $c, string $msg): void
+{
+    global $fails;
+    echo ($c ? "  ok   " : "  FAIL ") . $msg . "\n";
+    if (!$c) { $fails++; if (getenv('GITHUB_ACTIONS')) echo "::error title=smoke-tests::$msg\n"; }
+}
 
 final class Client {
     public array $cookies = [];
@@ -82,6 +92,9 @@ ok($s === 404, 'pagina inesistente = 404');
 
 $log = (string)@file_get_contents("$shared/server.log");
 ok(!preg_match('/PHP (Warning|Fatal|Parse|Deprecated)/', $log), 'nessun warning o errore PHP nel log del server');
-if ($fails) echo $log;
+if ($fails) {
+    echo $log;
+    if (getenv('GITHUB_ACTIONS')) foreach (array_slice(array_filter(explode("\n", $log), fn($l) => str_contains($l, 'PHP ')), 0, 5) as $l) echo "::error title=server log::" . trim($l) . "\n";
+}
 echo $fails ? "\n$fails test falliti\n" : "\nTutti i test verdi\n";
 exit($fails ? 1 : 0);

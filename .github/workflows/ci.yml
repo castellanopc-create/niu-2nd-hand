@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3', tools: none }
+        with: { php-version: '8.3', tools: none, coverage: none }
       - name: Sintassi di tutti i file PHP
         run: |
           find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l > /dev/null
@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3', extensions: 'pdo_sqlite, gd, exif, mbstring', tools: none }
+        with: { php-version: '8.3', extensions: 'pdo_sqlite, gd, exif, mbstring', tools: none, coverage: none }
       - run: php tests/smoke.php
 
   i18n:
@@ -55,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3', tools: none }
+        with: { php-version: '8.3', tools: none, coverage: none }
       - run: php tests/i18n.php
 
   phpstan:
@@ -64,5 +64,5 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3', extensions: 'pdo_sqlite, gd, exif, mbstring', tools: 'phpstan:2' }
+        with: { php-version: '8.3', extensions: 'pdo_sqlite, gd, exif, mbstring', tools: 'phpstan:2', coverage: none }
       - run: phpstan analyse --no-progress --error-format=github

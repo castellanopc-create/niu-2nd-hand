@@ -82,6 +82,8 @@ function db(): PDO
     $add('users', 'address', 'TEXT');
     $add('users', 'phone', 'TEXT');
     $add('valuations', 'request_id', 'INTEGER');
+    $add('users', 'must_change', 'INTEGER NOT NULL DEFAULT 0');   // password temporanea da cambiare
+    $add('users', 'reset_requested_at', 'TEXT');                   // richiesta "password dimenticata"
     return $pdo;
 }
 
@@ -125,8 +127,13 @@ function require_login(?string $role = null): array
 {
     $u = user();
     if (!$u) redirect('login');
+    if (!empty($u['must_change'])) redirect('password');   // prima va cambiata la password temporanea
     if ($role && $u['role'] !== $role) { http_response_code(403); exit('Accesso non consentito.'); }
     return $u;
+}
+function temp_password(): string
+{
+    return substr(strtr(base64_encode(random_bytes(12)), '+/=', 'xyz'), 0, 14);
 }
 function base_url(): string
 {

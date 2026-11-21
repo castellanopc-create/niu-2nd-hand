@@ -92,13 +92,32 @@ ok(str_contains($b, 'name="confirm"'), 'login con password temporanea → cambio
 [$s, $b] = $dealer2->req('?p=password', ['csrf' => $dealer2->csrf($b), 'current' => $tmp, 'new' => 'altra-password-dealer', 'confirm' => 'altra-password-dealer']);
 ok(str_contains($b, '?p=valuta'), 'nuova password impostata dopo il reset');
 $dealer = $dealer2;
+
+// Impostazioni admin: modifica importi e checklist, verifica l'effetto sulla valutazione
+[$s, $b] = $admin->req('?p=impostazioni');
+ok($s === 200 && str_contains($b, 'name="ti[moped][A]"'), 'pagina impostazioni admin');
+$form = [];
+preg_match_all('/<input type="number"[^>]*name="([^"]+)" value="(\d+)"/', $b, $m, PREG_SET_ORDER);
+foreach ($m as [, $n, $v]) $form[$n] = $v;
+preg_match_all('/<input type="checkbox" name="([^"]+)" value="1" checked>/', $b, $m);
+foreach ($m[1] as $n) $form[$n] = '1';
+$form['ti[moped][A]'] = '777';
+unset($form['cl[ele_fw][on]']);
+parse_str(http_build_query($form), $post);
+[$s, $b] = $admin->req('?p=impostazioni', ['csrf' => $admin->csrf($b)] + $post);
+ok(str_contains($b, 'value="777"') && !str_contains($b, 'name="cl[ele_fw][on]" value="1" checked'), 'impostazioni salvate');
+$bad = $post; $bad['gm']['B'] = 99;
+[, $b] = $admin->req('?p=impostazioni', ['csrf' => $admin->csrf($b)] + $bad);
+ok(str_contains($b, 'flash err'), 'soglie non decrescenti rifiutate');
 [$s, $b] = $dealer->req('?p=valuta&vin=TESTVIN0000000001');
 ok($s === 200 && str_contains($b, 'battery_soh'), 'form valutazione con dati portale');
+ok(!str_contains($b, 'a[ele_fw]'), 'voce disattivata dall\'admin assente dalla checklist');
 $answers = [];
 preg_match_all('/name="a\[(\w+)\]"/', $b, $m);
 foreach (array_unique($m[1]) as $id) $answers[$id] = 'ok';
 [$s, $b] = $dealer->req('?p=valuta', ['csrf' => $dealer->csrf($b), 'vin' => 'TESTVIN0000000001', 'model' => 'NQi GTS MY26', 'year' => 2024, 'km' => 1200, 'battery_soh' => 95, 'a' => $answers, 'notes' => '']);
 ok($s === 200 && str_contains($b, 'big-grade g-A'), 'valutazione calcolata (classe A)');
+ok(str_contains($b, '777'), 'la valutazione usa l\'extra NIU impostato dall\'admin');
 
 $cust = new Client($base);
 [$s, $b] = $cust->req('?p=stima');

@@ -6,6 +6,8 @@ $MODELS    = require __DIR__ . '/models.php';
 $CHECKLIST = require __DIR__ . '/checklist.php';
 require __DIR__ . '/portal.php';
 require __DIR__ . '/i18n.php';
+require __DIR__ . '/settings.php';
+$CHECKLIST_ALL = $CHECKLIST;   // checklist completa, per la pagina Impostazioni
 
 // --- Sessione -------------------------------------------------------------
 $https = (($_SERVER['HTTPS'] ?? '') !== '' && $_SERVER['HTTPS'] !== 'off')
@@ -72,6 +74,8 @@ function db(): PDO
             CHECK (status IN ('richiesto','confermato','annullato','completato')),
         dealer_note TEXT, valuation_id INTEGER REFERENCES valuations(id),
         consent_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS settings (
+        k TEXT PRIMARY KEY, v TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by INTEGER);
     CREATE UNIQUE INDEX IF NOT EXISTS req_slot ON requests(dealer_id, appt_at) WHERE status IN ('richiesto','confermato');
     SQL);
     // Migrazioni leggere per database già esistenti
@@ -156,7 +160,6 @@ function grade_for(int $score): string
 }
 
 // Esiti che, se "difetto", rendono il veicolo non idoneo a prescindere dal punteggio
-const BLOCKERS = ['doc_telaio', 'body_frame', 'batt_case'];
 
 function evaluate(array $answers, string $cat, ?int $soh): array
 {
@@ -167,7 +170,7 @@ function evaluate(array $answers, string $cat, ?int $soh): array
             if ($cats && !in_array($cat, $cats, true)) continue;
             $a = $answers[$id] ?? 'na';
             if ($a === 'usura')   $penalty += $w;
-            if ($a === 'difetto') { $penalty += $w * 3; if (in_array($id, BLOCKERS, true)) $blockers[] = $label; }
+            if ($a === 'difetto') { $penalty += $w * 3; if (in_array($id, blockers(), true)) $blockers[] = $label; }
         }
     }
     // Stato di salute batteria (SOH)
@@ -263,3 +266,5 @@ function dealers(): array
 {
     return db()->query("SELECT id, company, city, address, phone FROM users WHERE role = 'dealer' AND active = 1 ORDER BY city, company")->fetchAll();
 }
+
+apply_settings();

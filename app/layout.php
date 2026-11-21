@@ -30,6 +30,7 @@ function page_start(string $title, bool $public = false): void
       <a href="<?= url('valutazioni') ?>"><?= t('Valutazioni') ?></a>
       <a href="<?= url('richieste') ?>"><?= t('Richieste clienti') ?></a>
       <a href="<?= url('dealer') ?>"><?= t('Dealer') ?></a>
+      <a href="<?= url('impostazioni') ?>"><?= t('Impostazioni') ?></a>
     <?php endif; ?>
     <?php if (!$u): ?><a href="<?= url('stima') ?>"><?= t('Valuta il tuo NIU') ?></a><?php endif; ?>
     <a href="<?= url('usato') ?>"><?= t('Vetrina usato') ?></a>

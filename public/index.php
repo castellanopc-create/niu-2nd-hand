@@ -252,7 +252,7 @@ case 'valuta':
         <fieldset><legend><?= h(t($section)) ?></legend>
         <?php foreach ($items as $id => [$label, $w, $cats]): ?>
           <div class="chk" data-cats="<?= h(implode(',', $cats ?? [])) ?>">
-            <span><?= h(t($label)) ?><?php if (in_array($id, BLOCKERS, true)): ?> <small class="red"><?= t('• bloccante') ?></small><?php endif; ?></span>
+            <span><?= h(t($label)) ?><?php if (in_array($id, blockers(), true)): ?> <small class="red"><?= t('• bloccante') ?></small><?php endif; ?></span>
             <div class="seg">
               <?php foreach (['ok' => t('OK'), 'usura' => t('Usura'), 'difetto' => t('Difetto'), 'na' => t('N/A')] as $v => $l): ?>
                 <label><input type="radio" name="a[<?= $id ?>]" value="<?= $v ?>" <?= $v === (isset($pre[$id]) && $pre[$id] !== 'na' ? $pre[$id] : 'ok') ? 'checked' : '' ?>><span><?= $l ?></span></label>
@@ -322,7 +322,7 @@ case 'valutazione':
         <div class="offer"><span><?= t('Ritiro semplice') ?></span><b><?= eur($niuPrev) ?></b><small><?= t('extra NIU al dealer') ?></small></div>
         <div class="offer hl"><span><?= t('Ritiro + acquisto NIU nuovo') ?></span><b><?= eur($niuNew) ?></b><small><?= t('extra NIU + {amount} suggeriti dal dealer al cliente', ['amount' => eur($dealerNew)]) ?></small></div>
       </div>
-      <p class="muted"><?= t('Importi di esempio, da definire con il team NIU (file {file}).', ['file' => '<code>app/config.php</code>']) ?></p>
+      <p class="muted"><?= t('Importi definiti dal team NIU in Impostazioni.') ?></p>
       <div class="grid3">
         <label><?= t('Prezzo di ritiro offerto al cliente (€)') ?> <input type="number" name="trade_in_price" min="0"></label>
         <label class="check"><input type="checkbox" name="new_purchase" value="1" id="np"> <?= t('Il cliente acquista un NIU nuovo') ?></label>
@@ -615,6 +615,83 @@ case 'dealer':
             · <form method="post" class="inline"><?= csrf() ?><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= $d['id'] ?>"><button class="link"><?= $d['active'] ? t('Disattiva') : t('Riattiva') ?></button></form></td></tr>
       <?php endforeach; ?>
     </table>
+    <?php page_end(); break;
+
+// ===========================================================================
+case 'impostazioni':
+    $u = require_login('niu');
+    $cats = array_keys($CFG['categories']);
+    if ($POST) {
+        $eur = fn($v) => max(0, min(100000, (int)$v));
+        $ti = []; $np = [];
+        foreach ($cats as $c) {
+            foreach (array_keys($CFG['grades']) as $g) $ti[$c][$g] = $eur($_POST['ti'][$c][$g] ?? 0);
+            $np[$c] = ['niu' => $eur($_POST['np'][$c]['niu'] ?? 0), 'dealer' => $eur($_POST['np'][$c]['dealer'] ?? 0)];
+        }
+        $gm = ['A' => (int)($_POST['gm']['A'] ?? 90), 'B' => (int)($_POST['gm']['B'] ?? 75), 'C' => (int)($_POST['gm']['C'] ?? 55), 'D' => 0];
+        if (!(100 >= $gm['A'] && $gm['A'] > $gm['B'] && $gm['B'] > $gm['C'] && $gm['C'] > 0)) {
+            flash(t('Le soglie devono essere decrescenti: 100 ≥ A > B > C > 0.'), 'err'); redirect('impostazioni');
+        }
+        $cl = [];
+        foreach ($CHECKLIST_ALL as $items) foreach ($items as $id => $it) {
+            $p = $_POST['cl'][$id] ?? [];
+            $cl[$id] = ['on' => !empty($p['on']), 'w' => max(0, min(20, (int)($p['w'] ?? $it[1]))),
+                        'block' => !empty($p['block']), 'cust' => !empty($p['cust']) && !empty($it[3])];
+        }
+        setting_put('incentive_trade_in', $ti, (int)$u['id']);
+        setting_put('incentive_new_purchase', $np, (int)$u['id']);
+        setting_put('grade_min', $gm, (int)$u['id']);
+        setting_put('checklist', $cl, (int)$u['id']);
+        flash(t('Impostazioni salvate. Valgono per le nuove valutazioni; quelle già fatte non cambiano.'));
+        redirect('impostazioni');
+    }
+    $saved = setting_get('checklist') ?? [];
+    $last = settings_last_change();
+    page_start(t('Impostazioni')); ?>
+    <h1><?= t('IMPOSTAZIONI <em>2ND HAND</em>') ?></h1>
+    <p class="muted"><?= t('Le modifiche valgono per le nuove valutazioni e stime; quelle già fatte non cambiano.') ?>
+      <?php if ($last): ?><?= t('Ultima modifica: {date} — {name}.', ['date' => h($last['updated_at']), 'name' => h($last['name'] ?? '')]) ?><?php endif; ?></p>
+    <form method="post"><?= csrf() ?>
+      <section class="card">
+        <h2><?= t('Extra NIU per il ritiro (€)') ?></h2>
+        <p class="muted"><?= t('Importo che NIU riconosce al dealer per ogni ritiro registrato, per categoria e classe.') ?></p>
+        <table class="tbl"><tr><th></th><?php foreach (array_keys($CFG['grades']) as $g): ?><th><?= t('Classe') ?> <?= $g ?></th><?php endforeach; ?></tr>
+          <?php foreach ($cats as $c): ?><tr><td><b><?= h(strtok(t($CFG['categories'][$c]), ' (')) ?></b></td>
+            <?php foreach (array_keys($CFG['grades']) as $g): ?><td><input type="number" min="0" step="10" name="ti[<?= $c ?>][<?= $g ?>]" value="<?= (int)$CFG['incentive_trade_in'][$c][$g] ?>"></td><?php endforeach; ?></tr><?php endforeach; ?>
+        </table>
+      </section>
+      <section class="card">
+        <h2><?= t('Supporto se il cliente acquista un NIU nuovo (€)') ?></h2>
+        <p class="muted"><?= t('Si aggiunge all\'extra per il ritiro (non per la classe D). La quota dealer è quella suggerita al dealer verso il cliente.') ?></p>
+        <table class="tbl"><tr><th></th><th><?= t('Quota NIU') ?></th><th><?= t('Quota dealer') ?></th></tr>
+          <?php foreach ($cats as $c): ?><tr><td><b><?= h(strtok(t($CFG['categories'][$c]), ' (')) ?></b></td>
+            <td><input type="number" min="0" step="10" name="np[<?= $c ?>][niu]" value="<?= (int)$CFG['incentive_new_purchase'][$c]['niu'] ?>"></td>
+            <td><input type="number" min="0" step="10" name="np[<?= $c ?>][dealer]" value="<?= (int)$CFG['incentive_new_purchase'][$c]['dealer'] ?>"></td></tr><?php endforeach; ?>
+        </table>
+      </section>
+      <section class="card">
+        <h2><?= t('Soglie delle classi (punteggio minimo)') ?></h2>
+        <div class="grid3"><?php foreach (['A', 'B', 'C'] as $g): ?>
+          <label><?= t('Classe') ?> <?= $g ?> — <?= h(t($CFG['grades'][$g]['label'])) ?><input type="number" min="1" max="100" name="gm[<?= $g ?>]" value="<?= (int)$CFG['grades'][$g]['min'] ?>"></label>
+        <?php endforeach; ?></div>
+        <p class="muted"><?= t('Sotto la soglia C il veicolo è in classe D (non idoneo).') ?></p>
+      </section>
+      <section class="card">
+        <h2><?= t('Checklist di valutazione') ?></h2>
+        <p class="muted"><?= t('Peso = punti tolti per «Usura» (il triplo per «Difetto»). «Bloccante»: un difetto rende il veicolo non idoneo. «Cliente»: la domanda compare nell\'autovalutazione online.') ?></p>
+        <table class="tbl"><tr><th><?= t('Attiva') ?></th><th><?= t('Voce') ?></th><th><?= t('Peso') ?></th><th><?= t('Bloccante') ?></th><th><?= t('Cliente') ?></th></tr>
+          <?php foreach ($CHECKLIST_ALL as $sec => $items): ?><tr><td colspan="5" class="muted"><b><?= h(t($sec)) ?></b></td></tr>
+            <?php foreach ($items as $id => $it): $s = $saved[$id] ?? ['on' => true, 'w' => $it[1], 'block' => in_array($id, DEFAULT_BLOCKERS, true), 'cust' => !empty($it[3])]; ?>
+            <tr><td><input type="checkbox" name="cl[<?= $id ?>][on]" value="1" <?= $s['on'] ? 'checked' : '' ?>></td>
+              <td><?= h(t($it[0])) ?></td>
+              <td style="width:90px"><input type="number" min="0" max="20" name="cl[<?= $id ?>][w]" value="<?= (int)$s['w'] ?>"></td>
+              <td><input type="checkbox" name="cl[<?= $id ?>][block]" value="1" <?= $s['block'] ? 'checked' : '' ?>></td>
+              <td><?php if (!empty($it[3])): ?><input type="checkbox" name="cl[<?= $id ?>][cust]" value="1" <?= $s['cust'] ? 'checked' : '' ?>><?php else: ?><span class="muted">—</span><?php endif; ?></td></tr>
+          <?php endforeach; endforeach; ?>
+        </table>
+      </section>
+      <button class="btn"><?= t('Salva impostazioni') ?></button>
+    </form>
     <?php page_end(); break;
 
 // ===========================================================================

@@ -28,7 +28,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with: { php-version: '8.3', tools: none }
-      - run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l > /dev/null && echo "ok: nessun errore di sintassi"
+      - name: Sintassi di tutti i file PHP
+        run: |
+          find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l > /dev/null
+          echo "ok - nessun errore di sintassi"
 
   secret-scan:
     name: secret-scan

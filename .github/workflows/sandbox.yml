@@ -1,21 +1,47 @@
 # .github/workflows/sandbox.yml: ship this repository to https://castellanopc-create.sandbox.developyourself.dev
 # Add your deploy key as a repository secret named SANDBOX_KEY.
 # Folder "public/" is served if it exists, else the whole upload. "shared/" keeps files between deploys.
+# Dopo la spedizione il health gate controlla il sito: se è rotto rispedisce la versione precedente.
 name: Ship to my sandbox
 on:
   push:
     branches: [main]
   workflow_dispatch:
+concurrency:
+  group: sandbox-deploy
+  cancel-in-progress: false
+env:
+  SITE_URL: https://castellanopc-create.sandbox.developyourself.dev/
 jobs:
   ship:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      # - run: npm ci && npm run build      # optional build step
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Ship
         env:
           SANDBOX_KEY: ${{ secrets.SANDBOX_KEY }}
-          SANDBOX_DIR: .                     # or the folder your build writes to
+          SANDBOX_DIR: .
         run: |
           mkdir -p ~/.ssh && install -m 600 /dev/null ~/.ssh/k && printf '%s\n' "$SANDBOX_KEY" > ~/.ssh/k
           tar -czf - --exclude=.git -C "$SANDBOX_DIR" . | ssh -i ~/.ssh/k -o StrictHostKeyChecking=accept-new -p 2222 sb-castellanopc-create@sandbox.developyourself.dev
+
+      - name: Health gate
+        id: health
+        run: |
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -sSL -o page.html -w '%{http_code}' "$SITE_URL" || echo 000)
+            if [ "$code" = "200" ] && grep -q '</html>' page.html && ! grep -qiE 'Fatal error|Parse error|Warning:|Uncaught' page.html; then
+              echo "ok: sito raggiungibile e pagina completa (tentativo $i)"; exit 0
+            fi
+            echo "tentativo $i: HTTP $code"; sleep 10
+          done
+          echo "::error::Health gate fallito: il sito non risponde correttamente dopo il deploy"; exit 1
+
+      - name: Rollback alla versione precedente
+        if: failure() && steps.health.outcome == 'failure' && github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        run: |
+          git checkout -q "${{ github.event.before }}"
+          tar -czf - --exclude=.git . | ssh -i ~/.ssh/k -o StrictHostKeyChecking=accept-new -p 2222 sb-castellanopc-create@sandbox.developyourself.dev
+          echo "::error::Rispedita la versione precedente (${{ github.event.before }}). Correggi con un nuovo branch e una nuova PR."

@@ -12,7 +12,7 @@ function page_start(string $title, bool $public = false): void
 <link rel="icon" href="assets/niu-bull-red.png">
 <link rel="stylesheet" href="assets/style.css">
 </head>
-<body class="<?= $public ? 'public' : 'app' ?>">
+<body class="<?= $public ? 'public' : 'app' ?>" style="--cover-label:'<?= h(t('COPERTINA')) ?>'">
 <header class="top">
   <a class="brand" href="<?= $u ? url('home') : url('usato') ?>">
     <img src="assets/niu-logo-white.png" alt="NIU">

@@ -102,7 +102,7 @@ form.inline { display: inline; }
 .thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
 .thumb { position: relative; width: 140px; height: 105px; background: var(--soft); }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.thumb:first-child:not(.new)::after { content: "COPERTINA"; position: absolute; left: 0; bottom: 0; background: var(--red); color: var(--white); font-size: 11px; font-weight: 600; padding: 1px 6px; }
+.thumb:first-child:not(.new)::after { content: var(--cover-label, "COPERTINA"); position: absolute; left: 0; bottom: 0; background: var(--red); color: var(--white); font-size: 11px; font-weight: 600; padding: 1px 6px; }
 .thumb .x { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border: 0; background: var(--black); color: var(--white); font-size: 18px; line-height: 1; cursor: pointer; }
 .thumb.new { outline: 2px dashed var(--red); }
 .drop { position: relative; border: 2px dashed #bdbdbd; padding: 28px; text-align: center; font-weight: 400; cursor: pointer; }

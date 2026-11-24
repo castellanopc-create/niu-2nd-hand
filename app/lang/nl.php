@@ -477,4 +477,5 @@ return [
     'fino a' => 'tot',
     '(con acquisto di un NIU nuovo, per fascia di prezzo)' => '(bij aankoop van een nieuwe NIU, per prijsschijf)',
     'Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato. Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.' => 'Komt bovenop de inruilpremie, die afhangt van de klasse van het gebruikte voertuig. NIU-aandeel: door NIU aan de dealer vergoed. Dealeraandeel: korting van de dealer op de nieuwe NIU.',
+    'COPERTINA' => 'OMSLAG',
 ];

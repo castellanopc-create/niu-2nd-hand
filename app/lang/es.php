@@ -398,4 +398,13 @@ return [
     'Peso' => 'Peso',
     'Bloccante' => 'Bloqueante',
     'Salva impostazioni' => 'Guardar ajustes',
+    // Vincolo Ecobonus
+    'Veicolo immatricolato dal 2027: indica se è stato acquistato con Ecobonus (verifica sulla fattura d\'acquisto).' => 'Vehículo matriculado desde 2027: indica si se compró con el Ecobonus (verifica la factura de compra).',
+    'Data di immatricolazione (dal libretto)' => 'Fecha de matriculación (permiso de circulación)',
+    'Acquistato con Ecobonus? (verifica sulla fattura d\'acquisto)' => '¿Comprado con el Ecobonus? (verifica la factura de compra)',
+    'Dal 2027 un veicolo acquistato con Ecobonus non si può rivendere per 12 mesi.' => 'Desde 2027, un vehículo comprado con el Ecobonus no se puede revender durante 12 meses.',
+    'Immatricolato il {date}' => 'Matriculado el {date}',
+    'Ecobonus: {v}' => 'Ecobonus: {v}',
+    'Vincolo Ecobonus attivo: il veicolo si potrà ritirare dal {date}.' => 'Restricción Ecobonus activa: el vehículo podrá recomprarse a partir del {date}.',
+    'Vincolo Ecobonus: non rivendibile per 12 mesi dall\'immatricolazione' => 'Restricción Ecobonus: no revendible durante 12 meses desde la matriculación',
 ];

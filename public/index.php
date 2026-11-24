@@ -181,18 +181,27 @@ case 'valuta':
         $soh = max(0, min(100, (int)($_POST['battery_soh'] ?? 0)));
         $answers = array_map(fn($a) => in_array($a, ['ok', 'usura', 'difetto', 'na'], true) ? $a : 'na', (array)($_POST['a'] ?? []));
         if (strlen($vin) < 8 || $model === '') { flash(t('Telaio e modello sono obbligatori.'), 'err'); redirect('valuta', ['vin' => $vin]); }
+        $regDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($_POST['reg_date'] ?? '')) ? $_POST['reg_date'] : null;
+        $eco = in_array($_POST['ecobonus'] ?? '', ['si', 'no'], true) ? $_POST['ecobonus'] : '';
+        $lock = ecobonus_check($regDate, $eco, $CFG['ecobonus_lock']['from'], (int)$CFG['ecobonus_lock']['months'], date('Y-m-d'));
+        if ($lock['status'] === 'missing') {
+            flash(t('Veicolo immatricolato dal 2027: indica se è stato acquistato con Ecobonus (verifica sulla fattura d\'acquisto).'), 'err');
+            redirect('valuta', ['vin' => $vin]);
+        }
 
         [$score, $grade, $blockers] = evaluate($answers, $cat, $soh);
+        if ($lock['status'] === 'locked') { $blockers[] = 'Vincolo Ecobonus: non rivendibile per 12 mesi dall\'immatricolazione'; $grade = 'D'; }
         $portal = portal_lookup($vin);
         $reqId = null;
         if ($rid = (int)($_POST['req'] ?? 0)) {
             $st = db()->prepare("SELECT id FROM requests WHERE id = ? AND dealer_id = ? AND status IN ('richiesto','confermato')");
             $st->execute([$rid, $u['id']]); $reqId = $st->fetchColumn() ?: null;
         }
-        db()->prepare('INSERT INTO valuations (dealer_id, vin, category, model, year, km, battery_soh, portal_json, answers_json, score, grade, blockers, notes, request_id)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-            ->execute([$u['id'], $vin, $cat, $model, (int)($_POST['year'] ?? 0) ?: null, (int)($_POST['km'] ?? 0), $soh,
-                       json_encode($portal), json_encode($answers), $score, $grade, implode("\n", $blockers), trim($_POST['notes'] ?? ''), $reqId]);
+        db()->prepare('INSERT INTO valuations (dealer_id, vin, category, model, year, km, battery_soh, portal_json, answers_json, score, grade, blockers, notes, request_id, reg_date, ecobonus, resale_from)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            ->execute([$u['id'], $vin, $cat, $model, ($regDate ? (int)substr($regDate, 0, 4) : ((int)($_POST['year'] ?? 0) ?: null)), (int)($_POST['km'] ?? 0), $soh,
+                       json_encode($portal), json_encode($answers), $score, $grade, implode("\n", $blockers), trim($_POST['notes'] ?? ''), $reqId,
+                       $regDate, $eco ?: null, $lock['status'] === 'locked' ? $lock['until'] : null]);
         $vid = db()->lastInsertId();
         if ($reqId) db()->prepare("UPDATE requests SET status = 'completato', valuation_id = ? WHERE id = ?")->execute([$vid, $reqId]);
         redirect('valutazione', ['id' => $vid]);
@@ -237,7 +246,16 @@ case 'valuta':
         </label>
         <label><?= t('Anno') ?> <input type="number" name="year" min="2015" max="<?= date('Y') ?>" value="<?= $R['year'] ?? substr($d['first_sale_date'], 0, 4) ?>"></label>
         <label><?= t('Chilometri') ?> <input type="number" name="km" min="0" required value="<?= h((string)($R['km'] ?? '')) ?>"></label>
+        <label><?= t('Data di immatricolazione (dal libretto)') ?> <input type="date" name="reg_date" id="reg_date" max="<?= date('Y-m-d') ?>"></label>
+        <div id="eco" class="hidden"><span class="lbl"><?= t('Acquistato con Ecobonus? (verifica sulla fattura d\'acquisto)') ?></span>
+          <div class="seg"><label><input type="radio" name="ecobonus" value="si"><span><?= t('Sì') ?></span></label><label><input type="radio" name="ecobonus" value="no"><span><?= t('No') ?></span></label></div>
+          <small class="muted"><?= t('Dal 2027 un veicolo acquistato con Ecobonus non si può rivendere per 12 mesi.') ?></small></div>
       </div>
+      <script>
+      (function () { const d = document.getElementById('reg_date'), e = document.getElementById('eco'), from = <?= json_encode($CFG['ecobonus_lock']['from']) ?>;
+        const s = () => { const on = !!(d.value && d.value >= from); e.classList.toggle('hidden', !on);
+          e.querySelectorAll('input').forEach(i => i.required = on); }; d.addEventListener('input', s); s(); })();
+      </script>
       <div class="grid3 hidden" id="other">
         <label><?= t('Nome modello') ?> <input name="other_model"></label>
         <label><?= t('Categoria') ?> <select name="other_cat"><?php foreach ($CFG['categories'] as $c => $cl): ?><option value="<?= $c ?>"><?= h(t($cl)) ?></option><?php endforeach; ?></select></label>
@@ -311,6 +329,8 @@ case 'valutazione':
         <h2><?= h($v['model']) ?> · <?= h((string)$v['year']) ?> · <?= nf((int)$v['km']) ?> <?= t('km') ?></h2>
         <p><b><?= (int)$v['score'] ?>/100</b> — <?= h(t($CFG['grades'][$v['grade']]['label'])) ?></p>
         <p class="muted"><?= t('Telaio') ?> <?= h($v['vin']) ?> <?= t('· SOH batteria') ?> <?= (int)$v['battery_soh'] ?><?= t('% · Dealer') ?> <?= h($v['company']) ?> · <?= h($v['created_at']) ?></p>
+        <?php if ($v['reg_date']): ?><p class="muted"><?= t('Immatricolato il {date}', ['date' => h(date('d/m/Y', strtotime($v['reg_date'])))]) ?><?= $v['ecobonus'] ? ' · ' . t('Ecobonus: {v}', ['v' => $v['ecobonus'] === 'si' ? t('Sì') : t('No')]) : '' ?></p><?php endif; ?>
+        <?php if ($v['resale_from']): ?><div class="flash err"><?= t('Vincolo Ecobonus attivo: il veicolo si potrà ritirare dal {date}.', ['date' => h(date('d/m/Y', strtotime($v['resale_from'])))]) ?></div><?php endif; ?>
         <?php if ($v['blockers']): ?><div class="flash err"><b><?= t('Motivi di non idoneità:') ?></b><br><?= nl2br(h(implode("\n", array_map('t', explode("\n", $v['blockers']))))) ?></div><?php endif; ?>
       </div>
     </div>

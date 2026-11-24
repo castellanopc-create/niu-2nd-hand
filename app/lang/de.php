@@ -398,4 +398,13 @@ return [
     'Peso' => 'Gewicht',
     'Bloccante' => 'Ausschluss',
     'Salva impostazioni' => 'Einstellungen speichern',
+    // Vincolo Ecobonus
+    'Veicolo immatricolato dal 2027: indica se è stato acquistato con Ecobonus (verifica sulla fattura d\'acquisto).' => 'Fahrzeug ab 2027 zugelassen: Geben Sie an, ob es mit dem Ecobonus gekauft wurde (Kaufrechnung prüfen).',
+    'Data di immatricolazione (dal libretto)' => 'Erstzulassung (laut Zulassungsbescheinigung)',
+    'Acquistato con Ecobonus? (verifica sulla fattura d\'acquisto)' => 'Mit dem Ecobonus gekauft? (Kaufrechnung prüfen)',
+    'Dal 2027 un veicolo acquistato con Ecobonus non si può rivendere per 12 mesi.' => 'Ab 2027 darf ein mit dem Ecobonus gekauftes Fahrzeug 12 Monate lang nicht weiterverkauft werden.',
+    'Immatricolato il {date}' => 'Zugelassen am {date}',
+    'Ecobonus: {v}' => 'Ecobonus: {v}',
+    'Vincolo Ecobonus attivo: il veicolo si potrà ritirare dal {date}.' => 'Ecobonus-Sperre aktiv: Das Fahrzeug kann ab dem {date} in Zahlung genommen werden.',
+    'Vincolo Ecobonus: non rivendibile per 12 mesi dall\'immatricolazione' => 'Ecobonus-Sperre: 12 Monate nach Zulassung nicht weiterverkaufbar',
 ];

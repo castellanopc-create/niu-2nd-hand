@@ -398,4 +398,13 @@ return [
     'Peso' => 'Weight',
     'Bloccante' => 'Blocking',
     'Salva impostazioni' => 'Save settings',
+    // Vincolo Ecobonus
+    'Veicolo immatricolato dal 2027: indica se è stato acquistato con Ecobonus (verifica sulla fattura d\'acquisto).' => 'Vehicle registered from 2027: state whether it was bought with the Ecobonus (check the purchase invoice).',
+    'Data di immatricolazione (dal libretto)' => 'Registration date (from the registration certificate)',
+    'Acquistato con Ecobonus? (verifica sulla fattura d\'acquisto)' => 'Bought with the Ecobonus? (check the purchase invoice)',
+    'Dal 2027 un veicolo acquistato con Ecobonus non si può rivendere per 12 mesi.' => 'From 2027, a vehicle bought with the Ecobonus cannot be resold for 12 months.',
+    'Immatricolato il {date}' => 'Registered on {date}',
+    'Ecobonus: {v}' => 'Ecobonus: {v}',
+    'Vincolo Ecobonus attivo: il veicolo si potrà ritirare dal {date}.' => 'Ecobonus restriction active: the vehicle can be traded in from {date}.',
+    'Vincolo Ecobonus: non rivendibile per 12 mesi dall\'immatricolazione' => 'Ecobonus restriction: cannot be resold for 12 months after registration',
 ];

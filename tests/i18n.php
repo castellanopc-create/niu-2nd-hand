@@ -25,6 +25,7 @@ foreach (require "$root/app/checklist.php" as $sec => $items) {
     foreach ($items as $it) { $keys[$it[0]] = 'checklist'; if (!empty($it[3])) $keys[$it[3]] = 'checklist'; }
 }
 $keys['Stato di salute batteria sotto il 70%'] = 'bootstrap';
+$keys['Vincolo Ecobonus: non rivendibile per 12 mesi dall\'immatricolazione'] = 'index';
 // Testi che restano uguali in tutte le lingue
 foreach (['NIU', 'km', 'OK', 'Email', 'Dashboard', 'Dealer', 'DEALER', '×', 'app/config.php'] as $same) unset($keys[$same]);
 

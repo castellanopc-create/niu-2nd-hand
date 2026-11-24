@@ -398,4 +398,13 @@ return [
     'Peso' => 'Gewicht',
     'Bloccante' => 'Blokkerend',
     'Salva impostazioni' => 'Instellingen opslaan',
+    // Vincolo Ecobonus
+    'Veicolo immatricolato dal 2027: indica se è stato acquistato con Ecobonus (verifica sulla fattura d\'acquisto).' => 'Voertuig geregistreerd vanaf 2027: geef aan of het met de Ecobonus is gekocht (controleer de aankoopfactuur).',
+    'Data di immatricolazione (dal libretto)' => 'Registratiedatum (volgens kentekenbewijs)',
+    'Acquistato con Ecobonus? (verifica sulla fattura d\'acquisto)' => 'Gekocht met de Ecobonus? (controleer de aankoopfactuur)',
+    'Dal 2027 un veicolo acquistato con Ecobonus non si può rivendere per 12 mesi.' => 'Vanaf 2027 mag een met de Ecobonus gekocht voertuig 12 maanden niet worden doorverkocht.',
+    'Immatricolato il {date}' => 'Geregistreerd op {date}',
+    'Ecobonus: {v}' => 'Ecobonus: {v}',
+    'Vincolo Ecobonus attivo: il veicolo si potrà ritirare dal {date}.' => 'Ecobonus-beperking actief: het voertuig kan vanaf {date} worden ingeruild.',
+    'Vincolo Ecobonus: non rivendibile per 12 mesi dall\'immatricolazione' => 'Ecobonus-beperking: 12 maanden na registratie niet doorverkoopbaar',
 ];

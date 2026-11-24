@@ -45,6 +45,19 @@ final class Client {
         if ($loc !== null && $status >= 300 && $status < 400) return $this->req(ltrim($loc, '/'));
         return [$status, (string)$body];
     }
+    /** POST multipart con file: $files = [campo => [percorsi]] */
+    public function upload(string $path, array $fields, array $files): array {
+        $bd = '----niu' . bin2hex(random_bytes(6)); $body = '';
+        foreach ($fields as $k => $v) $body .= "--$bd\r\nContent-Disposition: form-data; name=\"$k\"\r\n\r\n$v\r\n";
+        foreach ($files as $k => $list) foreach ($list as $fp)
+            $body .= "--$bd\r\nContent-Disposition: form-data; name=\"$k\"; filename=\"" . basename($fp) . "\"\r\nContent-Type: image/jpeg\r\n\r\n" . file_get_contents($fp) . "\r\n";
+        $body .= "--$bd--\r\n";
+        $h = ["Content-Type: multipart/form-data; boundary=$bd"];
+        if ($this->cookies) $h[] = 'Cookie: ' . implode('; ', array_map(fn($k, $v) => "$k=$v", array_keys($this->cookies), $this->cookies));
+        $res = @file_get_contents($this->base . ltrim($path, '/'), false, stream_context_create(['http' => ['method' => 'POST', 'header' => $h, 'content' => $body, 'follow_location' => 0, 'ignore_errors' => true]]));
+        foreach ($http_response_header ?? [] as $line) if (stripos($line, 'Location:') === 0) return $this->req(ltrim(trim(substr($line, 9)), '/'));
+        return [0, (string)$res];
+    }
     public function csrf(string $html): string { preg_match('/name="csrf" value="([a-f0-9]+)"/', $html, $m); return $m[1] ?? ''; }
 }
 
@@ -144,7 +157,14 @@ ok(str_contains($bq, 'NQiX 500 MY26'), 'il cliente cambia il NIU nuovo nella quo
 [$s, $b] = $cust->req('?p=stima&step=2&dealer=2');
 preg_match('/name="slot" value="([^"]+)"/', $b, $m);
 ok(isset($m[1]), 'orari disponibili del dealer');
-[$s, $b] = $cust->req('?p=stima', ['csrf' => $cust->csrf($b), 'action' => 'prenota', 'dealer' => 2, 'slot' => $m[1] ?? '', 'name' => 'Cliente Prova', 'email' => 'cliente@example.test', 'phone' => '000000', 'privacy' => 1]);
+$imgs = [];
+foreach ([1, 2] as $k) { $im = imagecreatetruecolor(800, 600); imagefill($im, 0, 0, imagecolorallocate($im, 40 * $k, 60, 90)); imagejpeg($im, $fp = "$shared/test$k.jpg"); $imgs[] = $fp; }
+[$s, $b] = $cust->upload('?p=stima', ['csrf' => $cust->csrf($b), 'action' => 'prenota', 'dealer' => 2, 'slot' => $m[1] ?? '', 'name' => 'Cliente Prova', 'email' => 'cliente@example.test', 'phone' => '000000', 'privacy' => 1], ['photos[]' => $imgs]);
+ok(substr_count($b, 'class="thumb nocover"') === 2, 'il cliente allega 2 foto alla prenotazione');
+[, $ba] = $dealer->req('?p=appuntamenti');
+preg_match('/p=appuntamenti(?:&amp;|&)id=(\d+)/', $ba, $mm);
+[, $ba] = $dealer->req('?p=appuntamenti&id=' . ($mm[1] ?? 0));
+ok(substr_count($ba, 'class="thumb nocover"') === 2 && str_contains($ba, 'class="card quote"'), 'il dealer vede foto e quotazione del cliente');
 ok($s === 200 && str_contains($b, 'name="action" value="annulla"'), 'prenotazione creata, pagina richiesta');
 
 [$s, $b] = (new Client($base))->req('?p=usato');

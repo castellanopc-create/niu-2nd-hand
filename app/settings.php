@@ -33,9 +33,8 @@ function apply_settings(): void
     }
     // Premi: chiave 'incentives' (formato per classe; le vecchie chiavi per categoria sono ignorate)
     if ($v = setting_get('incentives')) {
-        foreach (['incentive_trade_in', 'incentive_new_purchase'] as $k) {
-            if (isset($v[$k])) $CFG[$k] = array_replace_recursive($CFG[$k], array_intersect_key($v[$k], $CFG[$k]));
-        }
+        if (isset($v['incentive_trade_in'])) $CFG['incentive_trade_in'] = array_replace_recursive($CFG['incentive_trade_in'], array_intersect_key($v['incentive_trade_in'], $CFG['incentive_trade_in']));
+        if (isset($v['incentive_trade_up']) && count($v['incentive_trade_up']) === count($CFG['incentive_trade_up'])) $CFG['incentive_trade_up'] = $v['incentive_trade_up'];
         if (isset($v['enabled'])) $CFG['incentives_enabled'] = (bool)$v['enabled'];
     }
     if ($v = setting_get('grade_min')) foreach ($v as $g => $min) if (isset($CFG['grades'][$g])) $CFG['grades'][$g]['min'] = (int)$min;

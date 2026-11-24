@@ -196,10 +196,9 @@ function evaluate(array $answers, string $cat, ?int $soh): array
     return [$score, $grade, $blockers];
 }
 
-function incentives(string $cat, string $grade, bool $newPurchase): array
+function incentives(string $cat, string $grade, bool $newPurchase, ?string $newModel = null): array
 {
-    global $CFG;
-    $p = incentive_parts($cat, $grade);
+    $p = incentive_parts($cat, $grade, $newModel);
     return [$p['premio_ritiro'] + ($newPurchase ? $p['permuta_niu'] : 0), $newPurchase ? $p['permuta_dealer'] : 0];
 }
 

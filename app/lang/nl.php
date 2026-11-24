@@ -457,4 +457,11 @@ return [
     'se ci sono fondi disponibili: 30% del prezzo IVA esclusa fino a 3.000 € nel 2026, 20% fino a 2.000 € dal 2027' => 'als er budget beschikbaar is: 30% van de prijs excl. btw tot € 3.000 in 2026, 20% tot € 2.000 vanaf 2027',
     'Prezzo indicativo da pagare' => 'Indicatieve te betalen prijs',
     'Importi indicativi: il dealer conferma il valore del tuo usato in sede, dopo la verifica con la diagnosi NIU. Premio ed extra NIU sono pagati da NIU, l\'extra dealer è uno sconto del concessionario.' => 'Indicatieve bedragen: de dealer bevestigt de waarde van je voertuig ter plekke, na de NIU-diagnose. De NIU-premie en NIU-extra worden door NIU betaald; de dealer-extra is een korting van de dealer.',
+    // Foto del cliente
+    'Foto del tuo veicolo (facoltative)' => 'Foto\'s van je voertuig (optioneel)',
+    'Fino a {n} foto: aiutano il dealer a confermare la stima. Suggerite: lato destro e sinistro, cruscotto con i km, eventuali danni.' => 'Tot {n} foto\'s: ze helpen de dealer de schatting te bevestigen. Aanbevolen: rechter- en linkerzijde, dashboard met km-stand, eventuele schade.',
+    'Foto aggiunte.' => 'Foto\'s toegevoegd.',
+    'Foto del tuo veicolo' => 'Foto\'s van je voertuig',
+    'Aggiungi foto' => 'Foto\'s toevoegen',
+    'Foto inviate dal cliente' => 'Foto\'s verstuurd door de klant',
 ];

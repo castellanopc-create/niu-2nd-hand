@@ -807,6 +807,8 @@ case 'stima':
                            $S['wants_new'] ? 1 : 0, $S['new_model'], $S['support_niu'], $S['support_dealer'], $slot,
                            ($qq = build_quote($S, $S['new_model'] ?: null, date('Y-m-d')))['value_low'], $qq['value_high'], json_encode($qq)]);
         } catch (PDOException) { flash(t('Quell\'orario è appena stato prenotato. Scegline un altro.'), 'err'); redirect('stima', ['step' => 2, 'dealer' => $dealerId]); }
+        [, $bad] = save_request_photos((int)db()->lastInsertId());
+        if ($bad) flash(t('{n} foto non accettate (formati JPG/PNG/WEBP, max {mb} MB).', ['n' => $bad, 'mb' => $CFG['photos']['max_bytes'] >> 20]), 'err');
         unset($_SESSION['stima']);
         redirect('richiesta', ['t' => $token, 'new' => 1]);
     }
@@ -845,7 +847,7 @@ case 'stima':
           <?php if ($dealerId && ($dd = array_values(array_filter($D, fn($d) => $d['id'] == $dealerId))[0] ?? null)):
               $slots = free_slots($dealerId); ?>
             <p class="muted"><?= h($dd['address'] ?: $dd['city']) ?><?= $dd['phone'] ? ' · ' . h($dd['phone']) : '' ?></p>
-            <form method="post"><?= csrf() ?><input type="hidden" name="action" value="prenota"><input type="hidden" name="dealer" value="<?= $dealerId ?>">
+            <form method="post" enctype="multipart/form-data"><?= csrf() ?><input type="hidden" name="action" value="prenota"><input type="hidden" name="dealer" value="<?= $dealerId ?>">
               <div class="slots">
                 <?php foreach ($slots as $day => $times): ?>
                   <div class="day"><b><?= h(it_date($day, false)) ?></b>
@@ -853,6 +855,14 @@ case 'stima':
                   </div>
                 <?php endforeach; ?>
               </div>
+              <h3><?= t('Foto del tuo veicolo (facoltative)') ?></h3>
+              <p class="muted"><?= t('Fino a {n} foto: aiutano il dealer a confermare la stima. Suggerite: lato destro e sinistro, cruscotto con i km, eventuali danni.', ['n' => REQUEST_PHOTOS_MAX]) ?></p>
+              <label class="drop"><input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple id="files"><span><?= t('Trascina qui le foto o <u>sfoglia</u>') ?></span></label>
+              <div class="thumbs" id="preview"></div>
+              <script>
+              (function () { const fi = document.getElementById('files'); fi.addEventListener('change', () => { const pv = document.getElementById('preview'); pv.innerHTML = '';
+                [...fi.files].slice(0, <?= REQUEST_PHOTOS_MAX ?>).forEach(f => { const d = document.createElement('div'); d.className = 'thumb new'; const i = new Image(); i.src = URL.createObjectURL(f); d.append(i); pv.append(d); }); }); })();
+              </script>
               <div class="grid3">
                 <label><?= t('Nome e cognome') ?> <input name="name" required autocomplete="name"></label>
                 <label><?= t('Email') ?> <input type="email" name="email" required autocomplete="email"></label>
@@ -910,6 +920,12 @@ case 'richiesta':
     $st = db()->prepare('SELECT r.*, u.company, u.city dcity, u.address, u.phone dphone FROM requests r JOIN users u ON u.id = r.dealer_id WHERE r.token = ?');
     $st->execute([(string)($_GET['t'] ?? '')]); $R = $st->fetch();
     if (!$R) { http_response_code(404); page_start(t('Non trovato'), true); echo '<p>' . t('Richiesta non trovata.') . '</p>'; page_end(); break; }
+    if ($POST && ($_POST['action'] ?? '') === 'foto' && in_array($R['status'], ['richiesto', 'confermato'], true)) {
+        [$ok, $bad] = save_request_photos((int)$R['id']);
+        if ($ok) flash(t('Foto aggiunte.'));
+        if ($bad) flash(t('{n} foto non accettate (formati JPG/PNG/WEBP, max {mb} MB).', ['n' => $bad, 'mb' => $CFG['photos']['max_bytes'] >> 20]), 'err');
+        redirect('richiesta', ['t' => $R['token']]);
+    }
     if ($POST && ($_POST['action'] ?? '') === 'annulla' && in_array($R['status'], ['richiesto', 'confermato'], true)) {
         db()->prepare("UPDATE requests SET status = 'annullato', dealer_note = ? WHERE id = ?")->execute([t('Annullato dal cliente'), $R['id']]);
         flash(t('Appuntamento annullato.')); redirect('richiesta', ['t' => $R['token']]);
@@ -928,6 +944,14 @@ case 'richiesta':
       </dl>
       <?php if ($R['quote_json']) render_quote(json_decode($R['quote_json'], true), null); ?>
       <?php if ($R['dealer_note']): ?><p><b><?= t('Nota:') ?></b> <?= h($R['dealer_note']) ?></p><?php endif; ?>
+      <?php $rp = request_photos((int)$R['id']); ?>
+      <h3><?= t('Foto del tuo veicolo') ?></h3>
+      <?php render_request_photos($rp); ?>
+      <?php if (count($rp) < REQUEST_PHOTOS_MAX && in_array($R['status'], ['richiesto', 'confermato'], true)): ?>
+        <form method="post" enctype="multipart/form-data" class="row"><?= csrf() ?><input type="hidden" name="action" value="foto">
+          <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple required>
+          <button class="btn ghost"><?= t('Aggiungi foto') ?></button></form>
+      <?php endif; ?>
       <p class="muted"><?= t('Porta con te carta di circolazione, chiavi / NFC card e caricabatterie.') ?></p>
       <?php if (in_array($R['status'], ['richiesto', 'confermato'], true)): ?>
         <form method="post"><?= csrf() ?><input type="hidden" name="action" value="annulla"><button class="btn ghost"><?= t('Annulla appuntamento') ?></button></form>
@@ -962,6 +986,7 @@ case 'appuntamenti':
             <div><dt><?= t('Autovalutazione cliente') ?></dt><dd><?= grade_badge($R['grade']) ?> <?= (int)$R['score'] ?>/100<?= $R['battery_soh'] !== null ? ' · SOH ' . (int)$R['battery_soh'] . '%' : '' ?></dd></div>
             <div><dt><?= t('Interesse NIU nuovo') ?></dt><dd><?= $R['wants_new'] ? '<b class="red">Sì</b>' . ($R['new_model'] ? ' — ' . h($R['new_model']) : '') : t('No') ?></dd></div>
           </dl>
+          <?php if ($rp = request_photos((int)$R['id'])): ?><h3><?= t('Foto inviate dal cliente') ?></h3><?php render_request_photos($rp); endif; ?>
           <?php if ($R['quote_json']): ?><h3><?= t('Quotazione indicativa vista dal cliente') ?></h3><?php render_quote(json_decode($R['quote_json'], true), null); endif; ?>
           <table class="tbl"><?php foreach ($CHECKLIST as $items) foreach ($items as $k => $it): if (!isset($ans[$k])) continue; ?>
             <tr><td><?= h(t($it[3])) ?></td><td><span class="ans a-<?= h($ans[$k]) ?>"><?= h(['ok' => t('Sì'), 'usura' => t('In parte'), 'difetto' => t('No'), 'na' => t('Non so')][$ans[$k]]) ?></span></td></tr>

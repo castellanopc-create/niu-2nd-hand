@@ -76,6 +76,8 @@ function db(): PDO
             CHECK (status IN ('richiesto','confermato','annullato','completato')),
         dealer_note TEXT, valuation_id INTEGER REFERENCES valuations(id),
         consent_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS request_photos (
+        id INTEGER PRIMARY KEY, request_id INTEGER NOT NULL REFERENCES requests(id) ON DELETE CASCADE, file TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS settings (
         k TEXT PRIMARY KEY, v TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by INTEGER);
     CREATE UNIQUE INDEX IF NOT EXISTS req_slot ON requests(dealer_id, appt_at) WHERE status IN ('richiesto','confermato');
@@ -241,6 +243,36 @@ function save_photo(array $f): ?string
     if ($info[2] !== IMAGETYPE_JPEG) return null;
     return move_uploaded_file($f['tmp_name'], $dest) ? $name : null;
 }
+
+const REQUEST_PHOTOS_MAX = 6;
+
+/** Foto caricate dal cliente sulla sua richiesta. */
+function request_photos(int $rid): array
+{
+    $st = db()->prepare('SELECT * FROM request_photos WHERE request_id = ? ORDER BY id');
+    $st->execute([$rid]);
+    return $st->fetchAll();
+}
+
+/** Salva le foto inviate dal cliente (campo photos[]). Ritorna [salvate, scartate]. */
+function save_request_photos(int $rid): array
+{
+    $ok = 0; $bad = 0; $n = count(request_photos($rid));
+    if (empty($_FILES['photos']['name'][0])) return [0, 0];
+    foreach ($_FILES['photos']['name'] as $i => $_) {
+        if ($n >= REQUEST_PHOTOS_MAX) { $bad++; continue; }
+        $f = array_combine(array_keys($_FILES['photos']), array_column($_FILES['photos'], $i));
+        if ($name = save_photo($f)) { db()->prepare('INSERT INTO request_photos (request_id, file) VALUES (?,?)')->execute([$rid, $name]); $n++; $ok++; }
+        else $bad++;
+    }
+    return [$ok, $bad];
+}
+
+function render_request_photos(array $photos): void
+{
+    if (!$photos) return; ?>
+    <div class="thumbs"><?php foreach ($photos as $ph): ?><a class="thumb nocover" href="<?= url('img', ['f' => $ph['file']]) ?>" target="_blank"><img src="<?= url('img', ['f' => $ph['file']]) ?>" alt=""></a><?php endforeach; ?></div>
+<?php }
 
 function listing_photos(int $id): array
 {

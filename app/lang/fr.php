@@ -457,4 +457,11 @@ return [
     'se ci sono fondi disponibili: 30% del prezzo IVA esclusa fino a 3.000 € nel 2026, 20% fino a 2.000 € dal 2027' => 'si des fonds sont disponibles : 30 % du prix HT jusqu\'à 3 000 € en 2026, 20 % jusqu\'à 2 000 € à partir de 2027',
     'Prezzo indicativo da pagare' => 'Prix indicatif à payer',
     'Importi indicativi: il dealer conferma il valore del tuo usato in sede, dopo la verifica con la diagnosi NIU. Premio ed extra NIU sono pagati da NIU, l\'extra dealer è uno sconto del concessionario.' => 'Montants indicatifs : le concessionnaire confirme la valeur de votre véhicule en concession, après le diagnostic NIU. La prime et le bonus NIU sont payés par NIU ; le bonus concessionnaire est une remise du concessionnaire.',
+    // Foto del cliente
+    'Foto del tuo veicolo (facoltative)' => 'Photos de votre véhicule (facultatives)',
+    'Fino a {n} foto: aiutano il dealer a confermare la stima. Suggerite: lato destro e sinistro, cruscotto con i km, eventuali danni.' => 'Jusqu\'à {n} photos : elles aident le concessionnaire à confirmer l\'estimation. Conseillé : côtés droit et gauche, tableau de bord avec le kilométrage, dommages éventuels.',
+    'Foto aggiunte.' => 'Photos ajoutées.',
+    'Foto del tuo veicolo' => 'Photos de votre véhicule',
+    'Aggiungi foto' => 'Ajouter des photos',
+    'Foto inviate dal cliente' => 'Photos envoyées par le client',
 ];

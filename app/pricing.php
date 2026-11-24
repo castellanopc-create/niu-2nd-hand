@@ -73,3 +73,24 @@ function incentive_parts(string $cat, string $grade): array
         'permuta_dealer'=> $eligible ? (int)$CFG['incentive_new_purchase'][$cat]['dealer'] : 0,  // dealer, solo con acquisto NIU nuovo
     ];
 }
+
+/**
+ * Quotazione indicativa per il cliente: valore dell'usato + premio NIU e, se sceglie un NIU nuovo, prezzo finale.
+ * @param array $s dati della stima (model, category, year, km, grade, soh)
+ */
+function build_quote(array $s, ?string $newModel, string $today): array
+{
+    global $CFG;
+    $uv = used_value($s['model'], $s['year'] ?? null, (int)$s['km'], $s['grade'], $s['soh'] ?? null);
+    $ip = incentive_parts($s['category'], $s['grade']);
+    $q = ['value_low' => $uv['low'] ?? null, 'value_mid' => $uv['mid'] ?? null, 'value_high' => $uv['high'] ?? null,
+          'premio' => $ip['premio_ritiro'], 'perm_niu' => $ip['permuta_niu'], 'perm_dealer' => $ip['permuta_dealer'],
+          'new_model' => null, 'list' => null, 'ecobonus' => 0, 'final' => null];
+    $list = $newModel ? (int)(used_value_cfg()['prices'][$newModel] ?? 0) : 0;
+    if ($list > 0 && $s['grade'] !== 'D') {
+        $eco = ecobonus_estimate($list, $today, $CFG['ecobonus_rates']);
+        $q = array_merge($q, ['new_model' => $newModel, 'list' => $list, 'ecobonus' => $eco,
+            'final' => max(0, $list - (int)$q['value_mid'] - $q['premio'] - $q['perm_niu'] - $q['perm_dealer'] - $eco)]);
+    }
+    return $q;
+}

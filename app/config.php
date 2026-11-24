@@ -39,6 +39,12 @@ return [
     // Vincolo Ecobonus: immatricolati da 'from' e acquistati con Ecobonus non rivendibili per 'months' mesi
     'ecobonus_lock' => ['from' => '2027-01-01', 'months' => 12],
 
+    // Ecobonus statale senza rottamazione: % del prezzo IVA esclusa, con tetto (soggetto a disponibilità dei fondi)
+    'ecobonus_rates' => [
+        ['from' => '2026-01-01', 'until' => '2026-12-31', 'pct' => 30, 'cap' => 3000],
+        ['from' => '2027-01-01', 'until' => '2030-12-31', 'pct' => 20, 'cap' => 2000],
+    ],
+
     // Valutazione: soglie di punteggio -> classe
     'grades' => [
         'A' => ['min' => 90, 'label' => 'Ottimo — certificabile NIU'],

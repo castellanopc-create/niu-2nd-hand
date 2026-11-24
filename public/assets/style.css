@@ -154,3 +154,8 @@ form.inline { display: inline; }
 .breakdown .num { text-align: right; white-space: nowrap; }
 .breakdown tr.off td { opacity: .35; text-decoration: line-through; }
 .breakdown tr.tot td { border-top: 2px solid var(--black); }
+.quote h3 { margin-top: 20px; }
+.quote .breakdown td:last-child { font-size: 13px; }
+.quote .breakdown { table-layout: fixed; }
+.quote .breakdown td:nth-child(1) { width: 42%; }
+.quote .breakdown td:nth-child(2) { width: 20%; }

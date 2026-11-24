@@ -131,6 +131,12 @@ ok(str_contains($b, 'value="777"') && !str_contains($b, 'name="cl[ele_fw][on]" v
 $bad = $post; $bad['gm']['B'] = 99;
 [, $b] = $admin->req('?p=impostazioni', ['csrf' => $admin->csrf($b)] + $bad);
 ok(str_contains($b, 'flash err'), 'soglie non decrescenti rifiutate');
+require_once $root . '/app/pricing.php';
+$CFG = require $root . '/app/config.php';
+$p = incentive_parts('moped', 'A'); $pc = incentive_parts('moto', 'C');
+ok($p === ['premio_ritiro' => 150, 'permuta_niu' => 150, 'permuta_dealer' => 150] && $pc['premio_ritiro'] + $pc['permuta_niu'] + $pc['permuta_dealer'] === 150, 'premi di default: da 150 € (classe C) a 450 € (classe A) per il cliente in permuta');
+$CFG['incentives_enabled'] = false;
+ok(array_sum(incentive_parts('moped', 'A')) === 0, 'premi spenti: nessun premio (fase 1)');
 [$s, $b] = $dealer->req('?p=valuta&vin=TESTVIN0000000001');
 ok($s === 200 && str_contains($b, 'battery_soh'), 'form valutazione con dati portale');
 ok(!str_contains($b, 'a[ele_fw]'), 'voce disattivata dall\'admin assente dalla checklist');

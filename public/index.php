@@ -191,17 +191,19 @@ case 'valuta':
 
         [$score, $grade, $blockers] = evaluate($answers, $cat, $soh);
         if ($lock['status'] === 'locked') { $blockers[] = 'Vincolo Ecobonus: non rivendibile per 12 mesi dall\'immatricolazione'; $grade = 'D'; }
+        $yearV = $regDate ? (int)substr($regDate, 0, 4) : ((int)($_POST['year'] ?? 0) ?: null);
+        $uv = used_value($model, $yearV, (int)($_POST['km'] ?? 0), $grade, $soh);
         $portal = portal_lookup($vin);
         $reqId = null;
         if ($rid = (int)($_POST['req'] ?? 0)) {
             $st = db()->prepare("SELECT id FROM requests WHERE id = ? AND dealer_id = ? AND status IN ('richiesto','confermato')");
             $st->execute([$rid, $u['id']]); $reqId = $st->fetchColumn() ?: null;
         }
-        db()->prepare('INSERT INTO valuations (dealer_id, vin, category, model, year, km, battery_soh, portal_json, answers_json, score, grade, blockers, notes, request_id, reg_date, ecobonus, resale_from)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-            ->execute([$u['id'], $vin, $cat, $model, ($regDate ? (int)substr($regDate, 0, 4) : ((int)($_POST['year'] ?? 0) ?: null)), (int)($_POST['km'] ?? 0), $soh,
+        db()->prepare('INSERT INTO valuations (dealer_id, vin, category, model, year, km, battery_soh, portal_json, answers_json, score, grade, blockers, notes, request_id, reg_date, ecobonus, resale_from, value_low, value_high)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            ->execute([$u['id'], $vin, $cat, $model, $yearV, (int)($_POST['km'] ?? 0), $soh,
                        json_encode($portal), json_encode($answers), $score, $grade, implode("\n", $blockers), trim($_POST['notes'] ?? ''), $reqId,
-                       $regDate, $eco ?: null, $lock['status'] === 'locked' ? $lock['until'] : null]);
+                       $regDate, $eco ?: null, $lock['status'] === 'locked' ? $lock['until'] : null, $uv['low'] ?? null, $uv['high'] ?? null]);
         $vid = db()->lastInsertId();
         if ($reqId) db()->prepare("UPDATE requests SET status = 'completato', valuation_id = ? WHERE id = ?")->execute([$vid, $reqId]);
         redirect('valutazione', ['id' => $vid]);
@@ -336,25 +338,43 @@ case 'valutazione':
     </div>
 
     <?php if ($v['status'] === 'valutato' && $u['role'] === 'dealer'): ?>
-    <form method="post" class="card"><?= csrf() ?>
-      <h2><?= t('Ritiro e supporto NIU') ?></h2>
-      <div class="split">
-        <div class="offer"><span><?= t('Ritiro semplice') ?></span><b><?= eur($niuPrev) ?></b><small><?= t('extra NIU al dealer') ?></small></div>
-        <div class="offer hl"><span><?= t('Ritiro + acquisto NIU nuovo') ?></span><b><?= eur($niuNew) ?></b><small><?= t('extra NIU + {amount} suggeriti dal dealer al cliente', ['amount' => eur($dealerNew)]) ?></small></div>
-      </div>
-      <p class="muted"><?= t('Importi definiti dal team NIU in Impostazioni.') ?></p>
+    <?php $ip = incentive_parts($v['category'], $v['grade']); $mid = $v['value_low'] ? (int)round(($v['value_low'] + $v['value_high']) / 2 / 10) * 10 : null; ?>
+    <form method="post" class="card" id="offer" data-p="<?= $ip['premio_ritiro'] ?>" data-n="<?= $ip['permuta_niu'] ?>" data-d="<?= $ip['permuta_dealer'] ?>" data-sep="<?= h(lang() === 'en' ? ',' : (lang() === 'fr' ? "\u{202F}" : '.')) ?>" data-pattern="<?= h(str_replace('1', '{n}', eur(1))) ?>"><?= csrf() ?>
+      <h2><?= t('Proposta al cliente') ?></h2>
+      <?php if ($v['value_low']): ?>
+        <p><?= t('Valore indicativo dell\'usato: <b>{low} – {high}</b>', ['low' => eur($v['value_low']), 'high' => eur($v['value_high'])]) ?>
+          <br><span class="muted"><?= t('Stima del sistema da listino, età, km, classe e batteria: il valore finale lo decidi tu.') ?></span></p>
+      <?php else: ?>
+        <p class="muted"><?= t('Nessuna stima automatica per questo modello: inserisci tu il valore.') ?></p>
+      <?php endif; ?>
       <div class="grid3">
-        <label><?= t('Prezzo di ritiro offerto al cliente (€)') ?> <input type="number" name="trade_in_price" min="0"></label>
-        <label class="check"><input type="checkbox" name="new_purchase" value="1" id="np"> <?= t('Il cliente acquista un NIU nuovo') ?></label>
+        <label><?= t('Valore dell\'usato offerto al cliente (€)') ?> <input type="number" name="trade_in_price" min="0" step="10" id="tv" value="<?= $mid ?? '' ?>"></label>
+        <label class="check"><input type="checkbox" name="new_purchase" value="1" id="np"> <?= t('Il cliente acquista un NIU nuovo (permuta)') ?></label>
         <label><?= t('Modello nuovo') ?>
           <select name="new_model"><option value="">—</option><?php foreach (array_keys($CFG['categories']) as $c) foreach ($MODELS[$c] as $m): ?><option><?= h($m) ?></option><?php endforeach; ?></select>
         </label>
       </div>
+      <?php render_breakdown($mid, $ip['premio_ritiro'], $ip['permuta_niu'], $ip['permuta_dealer'], true); ?>
       <div class="row">
         <button class="btn" name="action" value="ritira" ><?= t('Registra ritiro') ?></button>
         <button class="btn ghost" name="action" value="no"><?= t('Non ritirato') ?></button>
       </div>
     </form>
+    <script>
+    (function () {
+      const f = document.getElementById('offer'), tv = document.getElementById('tv'), np = document.getElementById('np');
+      const fmt = { format: n => f.dataset.pattern.replace('{n}', Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, f.dataset.sep)) };
+      const P = +f.dataset.p, N = +f.dataset.n, D = +f.dataset.d;
+      function upd() {
+        const v = +tv.value || 0, perm = np.checked;
+        f.querySelectorAll('.perm').forEach(r => r.classList.toggle('off', !perm));
+        f.querySelector('[data-cell=value]').textContent = fmt.format(v);
+        f.querySelector('[data-cell=total]').textContent = fmt.format(v + P + (perm ? N + D : 0));
+        f.querySelector('[data-cell=refund]').textContent = fmt.format(P + (perm ? N : 0));
+      }
+      tv.addEventListener('input', upd); np.addEventListener('change', upd); upd();
+    })();
+    </script>
     <?php else: ?>
     <section class="card">
       <h2><?= t('Esito') ?></h2>
@@ -362,7 +382,9 @@ case 'valutazione':
       <?php if ($v['status'] === 'ritirato'): ?>
         <p><?= t('Prezzo di ritiro:') ?> <b><?= $v['trade_in_price'] ? eur($v['trade_in_price']) : '—' ?></b>
         <?= t('· Acquisto NIU nuovo:') ?> <b><?= $v['new_purchase'] ? 'Sì — ' . h($v['new_model'] ?: t('modello n.d.')) : t('No') ?></b></p>
-        <p><?= t('Extra NIU:') ?> <b><?= eur($v['incentive_niu']) ?></b> <?= t('· Supporto dealer:') ?> <b><?= eur($v['incentive_dealer']) ?></b></p>
+        <?php $ip = incentive_parts($v['category'], $v['grade']);
+              render_breakdown($v['trade_in_price'] ? (int)$v['trade_in_price'] : null, (int)$v['incentive_niu'] - ($v['new_purchase'] ? $ip['permuta_niu'] : 0),
+                               $v['new_purchase'] ? $ip['permuta_niu'] : 0, (int)$v['incentive_dealer'], (bool)$v['new_purchase']); ?>
         <?php if ($u['role'] === 'dealer' && $v['grade'] !== 'D'):
             $st = db()->prepare('SELECT id FROM listings WHERE valuation_id = ?'); $st->execute([$v['id']]); $lid = $st->fetchColumn(); ?>
           <a class="btn" href="<?= $lid ? url('annuncio_edit', ['id' => $lid]) : url('annuncio_edit', ['from' => $v['id']]) ?>"><?= $lid ? t('Apri annuncio') : t('Crea annuncio 2nd Hand') ?></a>
@@ -662,6 +684,11 @@ case 'impostazioni':
         setting_put('incentive_new_purchase', $np, (int)$u['id']);
         setting_put('grade_min', $gm, (int)$u['id']);
         setting_put('checklist', $cl, (int)$u['id']);
+        $uvIn = (array)($_POST['uv'] ?? []); $uvSave = ['curve' => [], 'grade' => [], 'prices' => []];
+        foreach (array_keys(DEFAULT_USED_VALUE['curve']) as $age) $uvSave['curve'][$age] = max(0, min(100, (int)($uvIn['curve'][$age] ?? DEFAULT_USED_VALUE['curve'][$age])));
+        foreach (array_keys(DEFAULT_USED_VALUE['grade']) as $g) $uvSave['grade'][$g] = max(0, min(150, (int)($uvIn['grade'][$g] ?? DEFAULT_USED_VALUE['grade'][$g])));
+        foreach (array_merge(...array_values($MODELS)) as $m) if (($pr = (int)($uvIn['prices'][$m] ?? 0)) > 0) $uvSave['prices'][$m] = min(100000, $pr);
+        setting_put('used_value', $uvSave, (int)$u['id']);
         flash(t('Impostazioni salvate. Valgono per le nuove valutazioni; quelle già fatte non cambiano.'));
         redirect('impostazioni');
     }
@@ -673,16 +700,16 @@ case 'impostazioni':
       <?php if ($last): ?><?= t('Ultima modifica: {date} — {name}.', ['date' => h($last['updated_at']), 'name' => h($last['name'] ?? '')]) ?><?php endif; ?></p>
     <form method="post"><?= csrf() ?>
       <section class="card">
-        <h2><?= t('Extra NIU per il ritiro (€)') ?></h2>
-        <p class="muted"><?= t('Importo che NIU riconosce al dealer per ogni ritiro registrato, per categoria e classe.') ?></p>
+        <h2><?= t('Premio NIU sul ritiro (€)') ?></h2>
+        <p class="muted"><?= t('Riconosciuto al cliente su ogni ritiro, per categoria e classe: il dealer lo applica al cliente e NIU lo rimborsa al dealer.') ?></p>
         <table class="tbl"><tr><th></th><?php foreach (array_keys($CFG['grades']) as $g): ?><th><?= t('Classe') ?> <?= $g ?></th><?php endforeach; ?></tr>
           <?php foreach ($cats as $c): ?><tr><td><b><?= h(strtok(t($CFG['categories'][$c]), ' (')) ?></b></td>
             <?php foreach (array_keys($CFG['grades']) as $g): ?><td><input type="number" min="0" step="10" name="ti[<?= $c ?>][<?= $g ?>]" value="<?= (int)$CFG['incentive_trade_in'][$c][$g] ?>"></td><?php endforeach; ?></tr><?php endforeach; ?>
         </table>
       </section>
       <section class="card">
-        <h2><?= t('Supporto se il cliente acquista un NIU nuovo (€)') ?></h2>
-        <p class="muted"><?= t('Si aggiunge all\'extra per il ritiro (non per la classe D). La quota dealer è quella suggerita al dealer verso il cliente.') ?></p>
+        <h2><?= t('Extra permuta (€) — solo se il cliente acquista un NIU nuovo') ?></h2>
+        <p class="muted"><?= t('Si aggiunge al premio sul ritiro (non per la classe D). Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.') ?></p>
         <table class="tbl"><tr><th></th><th><?= t('Quota NIU') ?></th><th><?= t('Quota dealer') ?></th></tr>
           <?php foreach ($cats as $c): ?><tr><td><b><?= h(strtok(t($CFG['categories'][$c]), ' (')) ?></b></td>
             <td><input type="number" min="0" step="10" name="np[<?= $c ?>][niu]" value="<?= (int)$CFG['incentive_new_purchase'][$c]['niu'] ?>"></td>
@@ -695,6 +722,20 @@ case 'impostazioni':
           <label><?= t('Classe') ?> <?= $g ?> — <?= h(t($CFG['grades'][$g]['label'])) ?><input type="number" min="1" max="100" name="gm[<?= $g ?>]" value="<?= (int)$CFG['grades'][$g]['min'] ?>"></label>
         <?php endforeach; ?></div>
         <p class="muted"><?= t('Sotto la soglia C il veicolo è in classe D (non idoneo).') ?></p>
+      </section>
+      <?php $uvc = used_value_cfg(); ?>
+      <section class="card">
+        <h2><?= t('Valore indicativo dell\'usato') ?></h2>
+        <p class="muted"><?= t('Valore di ritiro = listino × % per età × fattore di classe, corretto per km (±1% ogni 1.000 km di scarto da {km} km/anno) e batteria (SOH sotto {soh}%: meno metà del prezzo batteria). Valori di partenza da tarare con il pilot.', ['km' => nf($uvc['km_per_year']), 'soh' => $uvc['soh_min']]) ?></p>
+        <table class="tbl"><tr><th><?= t('Età (anni)') ?></th><?php foreach ($uvc['curve'] as $age => $pct): ?><th><?= $age === 8 ? '8+' : $age ?></th><?php endforeach; ?></tr>
+          <tr><td><b><?= t('% del listino') ?></b></td><?php foreach ($uvc['curve'] as $age => $pct): ?><td><input type="number" min="0" max="100" name="uv[curve][<?= $age ?>]" value="<?= (int)$pct ?>"></td><?php endforeach; ?></tr></table>
+        <table class="tbl"><tr><th><?= t('Classe') ?></th><?php foreach ($uvc['grade'] as $g => $pct): ?><th><?= $g ?></th><?php endforeach; ?></tr>
+          <tr><td><b><?= t('Fattore (%)') ?></b></td><?php foreach ($uvc['grade'] as $g => $pct): ?><td><input type="number" min="0" max="150" name="uv[grade][<?= $g ?>]" value="<?= (int)$pct ?>"></td><?php endforeach; ?></tr></table>
+        <details><summary><?= t('Listino IVA inclusa per modello (€)') ?></summary>
+          <div class="grid3"><?php foreach (array_keys($CFG['categories']) as $c) foreach ($MODELS[$c] as $m): ?>
+            <label><?= h($m) ?> <input type="number" min="0" step="1" name="uv[prices][<?= h($m) ?>]" value="<?= (int)($uvc['prices'][$m] ?? 0) ?: '' ?>"></label>
+          <?php endforeach; ?></div>
+        </details>
       </section>
       <section class="card">
         <h2><?= t('Checklist di valutazione') ?></h2>
@@ -1061,6 +1102,20 @@ function render_requests(array $rows, bool $niu): void
           <td><?= grade_badge($r['grade']) ?></td><td><?= $r['wants_new'] ? t('Sì') . ($r['new_model'] ? ' — ' . h($r['new_model']) : '') : '—' ?></td>
           <td><span class="badge s-<?= $badge[$r['status']] ?>"><?= h($lab[$r['status']]) ?></span></td></tr>
       <?php endforeach; ?>
+    </table>
+<?php }
+
+/** Tabella "chi paga cosa" per dealer e cliente. */
+function render_breakdown(?int $value, int $premio, int $permNiu, int $permDealer, bool $showPerm): void
+{ ?>
+    <table class="tbl breakdown">
+      <tr><th><?= t('Voce') ?></th><th class="num"><?= t('Importo') ?></th><th><?= t('Chi lo paga') ?></th></tr>
+      <tr><td><?= t('Valore dell\'usato') ?></td><td class="num" data-cell="value"><?= $value !== null ? eur($value) : '—' ?></td><td><?= t('Dealer, che acquista il veicolo') ?></td></tr>
+      <tr><td><?= t('Premio NIU sul ritiro') ?></td><td class="num"><?= eur($premio) ?></td><td><?= t('NIU — rimborsato al dealer') ?></td></tr>
+      <tr class="perm<?= $showPerm ? '' : ' off' ?>"><td><?= t('Extra permuta NIU') ?> <small class="muted"><?= t('(solo con acquisto di un NIU nuovo)') ?></small></td><td class="num"><?= eur($permNiu) ?></td><td><?= t('NIU — rimborsato al dealer') ?></td></tr>
+      <tr class="perm<?= $showPerm ? '' : ' off' ?>"><td><?= t('Extra permuta dealer') ?> <small class="muted"><?= t('(solo con acquisto di un NIU nuovo)') ?></small></td><td class="num"><?= eur($permDealer) ?></td><td><?= t('Dealer — sconto sul NIU nuovo') ?></td></tr>
+      <tr class="tot"><td><b><?= t('Totale riconosciuto al cliente') ?></b></td><td class="num"><b data-cell="total"><?= $value !== null ? eur($value + $premio + ($showPerm ? $permNiu + $permDealer : 0)) : '—' ?></b></td><td></td></tr>
+      <tr><td><?= t('Rimborso NIU al dealer') ?></td><td class="num" data-cell="refund"><?= eur($premio + ($showPerm ? $permNiu : 0)) ?></td><td><?= t('NIU') ?></td></tr>
     </table>
 <?php }
 

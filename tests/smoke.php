@@ -127,6 +127,11 @@ foreach (array_unique($m[1]) as $id) $answers[$id] = 'ok';
 [$s, $b] = $dealer->req('?p=valuta', ['csrf' => $dealer->csrf($b), 'vin' => 'TESTVIN0000000001', 'model' => 'NQi GTS MY26', 'year' => 2024, 'km' => 1200, 'battery_soh' => 95, 'a' => $answers, 'notes' => '']);
 ok($s === 200 && str_contains($b, 'big-grade g-A'), 'valutazione calcolata (classe A)');
 ok(str_contains($b, '777'), 'la valutazione usa l\'extra NIU impostato dall\'admin');
+ok(str_contains($b, 'data-cell="refund"') && preg_match('/name="trade_in_price"[^>]*value="(\d+)"/', $b, $mm) && (int)$mm[1] > 0, 'valore indicativo dell\'usato proposto al dealer');
+require_once $root . '/app/pricing.php';
+$uvA = used_value('NQi Sport', 2022, 16000, 'A', 90, 2026); $uvC = used_value('NQi Sport', 2022, 16000, 'C', 60, 2026);
+ok($uvA !== null && $uvA['mid'] === 740 && $uvC['mid'] < $uvA['mid'], 'valore usato: classe e batteria riducono la stima');
+ok(used_value('Modello sconosciuto', 2022, 1000, 'A', 90) === null, 'nessuna stima senza listino');
 
 $cust = new Client($base);
 [$s, $b] = $cust->req('?p=stima');

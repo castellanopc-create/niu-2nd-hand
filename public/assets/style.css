@@ -149,3 +149,8 @@ form.inline { display: inline; }
 
 #eco .lbl { display: block; font-weight: 500; font-size: 14px; margin: 0 0 4px; }
 #eco .seg { margin-bottom: 4px; }
+
+.breakdown { margin: 8px 0 16px; }
+.breakdown .num { text-align: right; white-space: nowrap; }
+.breakdown tr.off td { opacity: .35; text-decoration: line-through; }
+.breakdown tr.tot td { border-top: 2px solid var(--black); }

@@ -8,6 +8,7 @@ require __DIR__ . '/portal.php';
 require __DIR__ . '/i18n.php';
 require __DIR__ . '/settings.php';
 require __DIR__ . '/ecobonus.php';
+require __DIR__ . '/pricing.php';
 $CHECKLIST_ALL = $CHECKLIST;   // checklist completa, per la pagina Impostazioni
 
 // --- Sessione -------------------------------------------------------------
@@ -89,7 +90,9 @@ function db(): PDO
     $add('valuations', 'request_id', 'INTEGER');
     $add('valuations', 'reg_date', 'TEXT');        // data di immatricolazione dal libretto
     $add('valuations', 'ecobonus', 'TEXT');        // 'si' | 'no' | NULL
-    $add('valuations', 'resale_from', 'TEXT');     // rivendibile da (vincolo Ecobonus)
+    $add('valuations', 'resale_from', 'TEXT');
+    $add('valuations', 'value_low', 'INTEGER');    // valore indicativo dell'usato al momento della valutazione
+    $add('valuations', 'value_high', 'INTEGER');     // rivendibile da (vincolo Ecobonus)
     $add('users', 'must_change', 'INTEGER NOT NULL DEFAULT 0');   // password temporanea da cambiare
     $add('users', 'reset_requested_at', 'TEXT');                   // richiesta "password dimenticata"
     return $pdo;

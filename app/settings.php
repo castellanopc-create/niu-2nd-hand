@@ -25,8 +25,12 @@ function setting_put(string $k, array $v, int $by): void
 /** Applica le impostazioni salvate a $CFG e $CHECKLIST. */
 function apply_settings(): void
 {
-    global $CFG, $CHECKLIST, $BLOCKERS;
+    global $CFG, $CHECKLIST, $BLOCKERS, $USED_VALUE;
     $BLOCKERS = DEFAULT_BLOCKERS;
+    $USED_VALUE = DEFAULT_USED_VALUE;
+    if ($v = setting_get('used_value')) {
+        foreach (['curve', 'grade', 'prices'] as $k) if (isset($v[$k])) $USED_VALUE[$k] = array_replace($USED_VALUE[$k], array_map('intval', $v[$k]));
+    }
     foreach (['incentive_trade_in', 'incentive_new_purchase'] as $k) {
         if ($v = setting_get($k)) $CFG[$k] = array_replace_recursive($CFG[$k], array_intersect_key($v, $CFG[$k]));
     }

@@ -159,4 +159,5 @@ form.inline { display: inline; }
 .quote .breakdown { table-layout: fixed; }
 .quote .breakdown td:nth-child(1) { width: 42%; }
 .quote .breakdown td:nth-child(2) { width: 20%; }
+@media (max-width: 600px) { .quote .breakdown td:nth-child(1) { width: 58%; } .quote .breakdown td:nth-child(2) { width: 42%; } .quote .breakdown td:last-child { display: none; } }
 .thumb.nocover::after { content: none; }

@@ -338,7 +338,7 @@ case 'valutazione':
     </div>
 
     <?php if ($v['status'] === 'valutato' && $u['role'] === 'dealer'): ?>
-    <?php $ip = incentive_parts($v['category'], $v['grade']); $bandsJs = $v['grade'] !== 'D' && incentives_enabled() ? $CFG['incentive_trade_up'] : []; $mid = $v['value_low'] ? (int)round(($v['value_low'] + $v['value_high']) / 2 / 10) * 10 : null; ?>
+    <?php $ip = incentive_parts($v['category'], $v['grade']); $bandsJs = incentives_enabled() ? $CFG['incentive_trade_up'] : []; $mid = $v['value_low'] ? (int)round(($v['value_low'] + $v['value_high']) / 2 / 10) * 10 : null; ?>
     <form method="post" class="card" id="offer" data-p="<?= $ip['premio_ritiro'] ?>" data-bands="<?= h(json_encode($bandsJs)) ?>" data-sep="<?= h(lang() === 'en' ? ',' : (lang() === 'fr' ? "\u{202F}" : '.')) ?>" data-pattern="<?= h(str_replace('1', '{n}', eur(1))) ?>"><?= csrf() ?>
       <h2><?= t('Proposta al cliente') ?></h2>
       <?php if ($v['value_low']): ?>
@@ -684,7 +684,7 @@ case 'impostazioni':
             $cl[$id] = ['on' => !empty($p['on']), 'w' => max(0, min(20, (int)($p['w'] ?? $it[1]))),
                         'block' => !empty($p['block']), 'cust' => !empty($p['cust']) && !empty($it[3])];
         }
-        setting_put('incentives', ['enabled' => !empty($_POST['incentives_enabled']), 'incentive_trade_in' => $ti, 'incentive_trade_up' => $np], (int)$u['id']);
+        setting_put('incentives', ['v' => 3, 'enabled' => !empty($_POST['incentives_enabled']), 'incentive_trade_in' => $ti, 'incentive_trade_up' => $np], (int)$u['id']);
         setting_put('grade_min', $gm, (int)$u['id']);
         setting_put('checklist', $cl, (int)$u['id']);
         $uvIn = (array)($_POST['uv'] ?? []); $uvSave = ['curve' => [], 'grade' => [], 'prices' => []];
@@ -716,7 +716,7 @@ case 'impostazioni':
       </section>
       <section class="card">
         <h2><?= t('Extra permuta (€) — solo se il cliente acquista un NIU nuovo, per fascia di prezzo del nuovo') ?></h2>
-        <p class="muted"><?= t('Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato (non per la classe D). Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.') ?></p>
+        <p class="muted"><?= t('Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato. Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.') ?></p>
         <table class="tbl"><tr><th><?= t('Prezzo di listino del NIU nuovo (€)') ?></th><th><?= t('Quota NIU') ?></th><th><?= t('Quota dealer') ?></th></tr>
           <?php $prev = 0; foreach ($CFG['incentive_trade_up'] as $i => $b): ?><tr>
             <td><?php if ($b['up_to'] === null): ?><?= t('oltre {n}', ['n' => eur($prev)]) ?><?php else: ?><?= t('fino a') ?> <input type="number" min="1" step="100" name="np[<?= $i ?>][up_to]" value="<?= (int)$b['up_to'] ?>" style="display:inline-block;width:120px"><?php $prev = (int)$b['up_to']; endif; ?></td>
@@ -840,7 +840,7 @@ case 'stima':
             <?php if ($S['blockers']): ?><div class="flash err"><?= t('Da quanto indichi, il veicolo potrebbe non rientrare nel programma 2nd Hand. Il dealer verificherà di persona.') ?></div><?php endif; ?>
           </div>
         </div>
-        <?php render_quote(build_quote($S, $S['new_model'] ?: null, date('Y-m-d')), $S['grade'] !== 'D' ? array_keys(used_value_cfg()['prices']) : null, (int)($_GET['dealer'] ?? 0)); ?>
+        <?php render_quote(build_quote($S, $S['new_model'] ?: null, date('Y-m-d')), array_keys(used_value_cfg()['prices']), (int)($_GET['dealer'] ?? 0)); ?>
 
         <section class="card">
           <h2><?= t('Prenota la valutazione in concessionaria') ?></h2>

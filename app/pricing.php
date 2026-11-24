@@ -69,15 +69,33 @@ function incentives_enabled(): bool
     return !empty($CFG['incentives_enabled']);
 }
 
-function incentive_parts(string $cat, string $grade): array
+/** Fascia di extra permuta per il prezzo di listino del NIU nuovo. */
+function trade_up_band(?int $newPrice): array
+{
+    global $CFG;
+    if (!$newPrice) return ['niu' => 0, 'dealer' => 0];
+    foreach ($CFG['incentive_trade_up'] as $b) if ($b['up_to'] === null || $newPrice <= $b['up_to']) return ['niu' => (int)$b['niu'], 'dealer' => (int)$b['dealer']];
+    return ['niu' => 0, 'dealer' => 0];
+}
+
+function new_price(?string $model): ?int
+{
+    $p = $model ? (int)(used_value_cfg()['prices'][$model] ?? 0) : 0;
+    return $p > 0 ? $p : null;
+}
+
+/**
+ * Premi incrociati: premio sul ritiro per classe dell'usato + extra permuta per fascia di prezzo del NIU nuovo.
+ */
+function incentive_parts(string $cat, string $grade, ?string $newModel = null): array
 {
     global $CFG;
     if (!incentives_enabled()) return ['premio_ritiro' => 0, 'permuta_niu' => 0, 'permuta_dealer' => 0];
-    $np = $CFG['incentive_new_purchase'][$cat][$grade] ?? ['niu' => 0, 'dealer' => 0];
+    $band = $grade !== 'D' ? trade_up_band(new_price($newModel)) : ['niu' => 0, 'dealer' => 0];
     return [
         'premio_ritiro' => (int)($CFG['incentive_trade_in'][$cat][$grade] ?? 0),   // NIU, su ogni ritiro (anche senza permuta)
-        'permuta_niu'   => $grade !== 'D' ? (int)$np['niu'] : 0,                     // NIU, solo con acquisto NIU nuovo
-        'permuta_dealer'=> $grade !== 'D' ? (int)$np['dealer'] : 0,                  // dealer, solo con acquisto NIU nuovo
+        'permuta_niu'   => $band['niu'],                                            // NIU, solo con acquisto NIU nuovo
+        'permuta_dealer'=> $band['dealer'],                                         // dealer, solo con acquisto NIU nuovo
     ];
 }
 
@@ -89,7 +107,7 @@ function build_quote(array $s, ?string $newModel, string $today): array
 {
     global $CFG;
     $uv = used_value($s['model'], $s['year'] ?? null, (int)$s['km'], $s['grade'], $s['soh'] ?? null);
-    $ip = incentive_parts($s['category'], $s['grade']);
+    $ip = incentive_parts($s['category'], $s['grade'], $newModel);
     $q = ['value_low' => $uv['low'] ?? null, 'value_mid' => $uv['mid'] ?? null, 'value_high' => $uv['high'] ?? null,
           'premio' => $ip['premio_ritiro'], 'perm_niu' => $ip['permuta_niu'], 'perm_dealer' => $ip['permuta_dealer'],
           'new_model' => null, 'list' => null, 'ecobonus' => 0, 'final' => null];

@@ -467,4 +467,13 @@ return [
     // Premi on/off
     'Premi attivi' => 'Premies actief',
     'Spento: clienti e dealer vedono solo il valore dell\'usato, senza premio NIU né extra permuta (fase 1 del programma).' => 'Uit: klanten en dealers zien alleen de waarde van het gebruikte voertuig, zonder NIU-premie of inruilextra (fase 1 van het programma).',
+    // Fasce extra permuta
+    'Per la permuta scegli il modello nuovo.' => 'Kies voor de inruil het nieuwe model.',
+    'Le fasce di prezzo devono essere crescenti.' => 'De prijsschijven moeten oplopend zijn.',
+    'Extra permuta (€) — solo se il cliente acquista un NIU nuovo, per fascia di prezzo del nuovo' => 'Inruilextra (€) — alleen als de klant een nieuwe NIU koopt, per prijsschijf van het nieuwe voertuig',
+    'Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato (non per la classe D). Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.' => 'Komt bovenop de inruilpremie, die afhangt van de klasse van het gebruikte voertuig (niet bij klasse D). NIU-aandeel: door NIU aan de dealer vergoed. Dealeraandeel: korting van de dealer op de nieuwe NIU.',
+    'Prezzo di listino del NIU nuovo (€)' => 'Catalogusprijs van de nieuwe NIU (€)',
+    'oltre {n}' => 'boven {n}',
+    'fino a' => 'tot',
+    '(con acquisto di un NIU nuovo, per fascia di prezzo)' => '(bij aankoop van een nieuwe NIU, per prijsschijf)',
 ];

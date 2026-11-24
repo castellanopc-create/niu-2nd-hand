@@ -467,4 +467,13 @@ return [
     // Premi on/off
     'Premi attivi' => 'Bonuses active',
     'Spento: clienti e dealer vedono solo il valore dell\'usato, senza premio NIU né extra permuta (fase 1 del programma).' => 'Off: customers and dealers see only the used value, with no NIU bonus or trade-in extra (phase 1 of the programme).',
+    // Fasce extra permuta
+    'Per la permuta scegli il modello nuovo.' => 'For a trade-in, choose the new model.',
+    'Le fasce di prezzo devono essere crescenti.' => 'Price bands must be increasing.',
+    'Extra permuta (€) — solo se il cliente acquista un NIU nuovo, per fascia di prezzo del nuovo' => 'Trade-in extra (€) — only if the customer buys a new NIU, by price band of the new vehicle',
+    'Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato (non per la classe D). Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.' => 'Added to the trade-in bonus, which depends on the used vehicle\'s grade (not for grade D). NIU share: refunded by NIU to the dealer. Dealer share: the dealer\'s discount on the new NIU.',
+    'Prezzo di listino del NIU nuovo (€)' => 'List price of the new NIU (€)',
+    'oltre {n}' => 'above {n}',
+    'fino a' => 'up to',
+    '(con acquisto di un NIU nuovo, per fascia di prezzo)' => '(with the purchase of a new NIU, by price band)',
 ];

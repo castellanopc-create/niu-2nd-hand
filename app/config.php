@@ -62,10 +62,11 @@ return [
         'moto'  => ['A' => 150, 'B' => 100, 'C' => 50, 'D' => 0],
     ],
 
-    // Extra permuta, solo se il cliente acquista un NIU nuovo (EUR), per categoria e classe:
-    // niu = quota NIU (rimborsata al dealer), dealer = sconto del dealer, di pari importo
-    'incentive_new_purchase' => [
-        'moped' => ['A' => ['niu' => 150, 'dealer' => 150], 'B' => ['niu' => 100, 'dealer' => 100], 'C' => ['niu' => 50, 'dealer' => 50], 'D' => ['niu' => 0, 'dealer' => 0]],
-        'moto'  => ['A' => ['niu' => 150, 'dealer' => 150], 'B' => ['niu' => 100, 'dealer' => 100], 'C' => ['niu' => 50, 'dealer' => 50], 'D' => ['niu' => 0, 'dealer' => 0]],
+    // Extra permuta, solo se il cliente acquista un NIU nuovo: per fascia di prezzo di listino del NIU nuovo (EUR).
+    // 'up_to' = prezzo di listino IVA incl. fino a cui vale la fascia (null = oltre); niu = quota NIU, dealer = sconto del dealer
+    'incentive_trade_up' => [
+        ['up_to' => 2900, 'niu' => 50,  'dealer' => 50],
+        ['up_to' => 3800, 'niu' => 100, 'dealer' => 100],
+        ['up_to' => null, 'niu' => 150, 'dealer' => 150],
     ],
 ];

@@ -467,4 +467,13 @@ return [
     // Premi on/off
     'Premi attivi' => 'Prämien aktiv',
     'Spento: clienti e dealer vedono solo il valore dell\'usato, senza premio NIU né extra permuta (fase 1 del programma).' => 'Aus: Kunden und Händler sehen nur den Wert des Gebrauchten, ohne NIU-Prämie und Inzahlungnahme-Extra (Phase 1 des Programms).',
+    // Fasce extra permuta
+    'Per la permuta scegli il modello nuovo.' => 'Für die Inzahlungnahme das neue Modell wählen.',
+    'Le fasce di prezzo devono essere crescenti.' => 'Die Preisstufen müssen aufsteigend sein.',
+    'Extra permuta (€) — solo se il cliente acquista un NIU nuovo, per fascia di prezzo del nuovo' => 'Inzahlungnahme-Extra (€) — nur beim Kauf eines neuen NIU, nach Preisstufe des Neufahrzeugs',
+    'Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato (non per la classe D). Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.' => 'Kommt zur Prämie hinzu, die von der Klasse des Gebrauchten abhängt (nicht bei Klasse D). NIU-Anteil: von NIU an den Händler erstattet. Händleranteil: Rabatt des Händlers auf den neuen NIU.',
+    'Prezzo di listino del NIU nuovo (€)' => 'Listenpreis des neuen NIU (€)',
+    'oltre {n}' => 'über {n}',
+    'fino a' => 'bis',
+    '(con acquisto di un NIU nuovo, per fascia di prezzo)' => '(beim Kauf eines neuen NIU, nach Preisstufe)',
 ];

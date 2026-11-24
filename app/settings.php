@@ -32,7 +32,8 @@ function apply_settings(): void
         foreach (['curve', 'grade', 'prices'] as $k) if (isset($v[$k])) $USED_VALUE[$k] = array_replace($USED_VALUE[$k], array_map('intval', $v[$k]));
     }
     // Premi: chiave 'incentives' (formato per classe; le vecchie chiavi per categoria sono ignorate)
-    if ($v = setting_get('incentives')) {
+    // versione 3: premi sul ritiro A 200 / B 150 / C 100 / D 50; i salvataggi precedenti sono ignorati
+    if (($v = setting_get('incentives')) && ($v['v'] ?? 1) >= 3) {
         if (isset($v['incentive_trade_in'])) $CFG['incentive_trade_in'] = array_replace_recursive($CFG['incentive_trade_in'], array_intersect_key($v['incentive_trade_in'], $CFG['incentive_trade_in']));
         if (isset($v['incentive_trade_up']) && count($v['incentive_trade_up']) === count($CFG['incentive_trade_up'])) $CFG['incentive_trade_up'] = $v['incentive_trade_up'];
         if (isset($v['enabled'])) $CFG['incentives_enabled'] = (bool)$v['enabled'];

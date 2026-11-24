@@ -91,7 +91,7 @@ function incentive_parts(string $cat, string $grade, ?string $newModel = null): 
 {
     global $CFG;
     if (!incentives_enabled()) return ['premio_ritiro' => 0, 'permuta_niu' => 0, 'permuta_dealer' => 0];
-    $band = $grade !== 'D' ? trade_up_band(new_price($newModel)) : ['niu' => 0, 'dealer' => 0];
+    $band = trade_up_band(new_price($newModel));   // l'extra permuta dipende solo dal NIU nuovo, anche per la classe D
     return [
         'premio_ritiro' => (int)($CFG['incentive_trade_in'][$cat][$grade] ?? 0),   // NIU, su ogni ritiro (anche senza permuta)
         'permuta_niu'   => $band['niu'],                                            // NIU, solo con acquisto NIU nuovo
@@ -112,7 +112,7 @@ function build_quote(array $s, ?string $newModel, string $today): array
           'premio' => $ip['premio_ritiro'], 'perm_niu' => $ip['permuta_niu'], 'perm_dealer' => $ip['permuta_dealer'],
           'new_model' => null, 'list' => null, 'ecobonus' => 0, 'final' => null];
     $list = $newModel ? (int)(used_value_cfg()['prices'][$newModel] ?? 0) : 0;
-    if ($list > 0 && $s['grade'] !== 'D') {
+    if ($list > 0) {
         $eco = ecobonus_estimate($list, $today, $CFG['ecobonus_rates']);
         $q = array_merge($q, ['new_model' => $newModel, 'list' => $list, 'ecobonus' => $eco,
             'final' => max(0, $list - (int)$q['value_mid'] - $q['premio'] - $q['perm_niu'] - $q['perm_dealer'] - $eco)]);

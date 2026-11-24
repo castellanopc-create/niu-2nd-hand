@@ -476,4 +476,5 @@ return [
     'oltre {n}' => 'au-delà de {n}',
     'fino a' => 'jusqu\'à',
     '(con acquisto di un NIU nuovo, per fascia di prezzo)' => '(avec l\'achat d\'un NIU neuf, par tranche de prix)',
+    'Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato. Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.' => 'S\'ajoute à la prime de reprise, qui dépend de la classe de l\'occasion. Part NIU : remboursée par NIU au concessionnaire. Part concessionnaire : remise du concessionnaire sur le NIU neuf.',
 ];

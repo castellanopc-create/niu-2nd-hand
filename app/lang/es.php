@@ -476,4 +476,5 @@ return [
     'oltre {n}' => 'más de {n}',
     'fino a' => 'hasta',
     '(con acquisto di un NIU nuovo, per fascia di prezzo)' => '(con la compra de un NIU nuevo, por tramo de precio)',
+    'Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato. Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.' => 'Se suma a la prima por recompra, que depende de la clase del usado. Cuota NIU: la reembolsa NIU al concesionario. Cuota concesionario: descuento del concesionario sobre el NIU nuevo.',
 ];

@@ -58,8 +58,8 @@ return [
 
     // Premio NIU sul ritiro, riconosciuto al cliente anche senza permuta (EUR), per categoria e classe
     'incentive_trade_in' => [
-        'moped' => ['A' => 150, 'B' => 100, 'C' => 50, 'D' => 0],
-        'moto'  => ['A' => 150, 'B' => 100, 'C' => 50, 'D' => 0],
+        'moped' => ['A' => 200, 'B' => 150, 'C' => 100, 'D' => 50],
+        'moto'  => ['A' => 200, 'B' => 150, 'C' => 100, 'D' => 50],
     ],
 
     // Extra permuta, solo se il cliente acquista un NIU nuovo: per fascia di prezzo di listino del NIU nuovo (EUR).

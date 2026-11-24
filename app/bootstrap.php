@@ -93,6 +93,9 @@ function db(): PDO
     $add('valuations', 'resale_from', 'TEXT');
     $add('valuations', 'value_low', 'INTEGER');    // valore indicativo dell'usato al momento della valutazione
     $add('valuations', 'value_high', 'INTEGER');     // rivendibile da (vincolo Ecobonus)
+    $add('requests', 'value_low', 'INTEGER');
+    $add('requests', 'value_high', 'INTEGER');
+    $add('requests', 'quote_json', 'TEXT');
     $add('users', 'must_change', 'INTEGER NOT NULL DEFAULT 0');   // password temporanea da cambiare
     $add('users', 'reset_requested_at', 'TEXT');                   // richiesta "password dimenticata"
     return $pdo;

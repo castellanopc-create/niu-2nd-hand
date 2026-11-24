@@ -777,12 +777,13 @@ case 'stima':
         }
         [$score, $grade, $blockers] = evaluate($ans, $cat, $soh);
         $wants = !empty($_POST['wants_new']);
-        [$niu, $dealer] = incentives($cat, $grade, true);
+        if ((int)($_POST['year'] ?? 0) < 2015) { flash(t('Indica l\'anno di immatricolazione.'), 'err'); redirect('stima'); }
+        $ip = incentive_parts($cat, $grade);
         $_SESSION['stima'] = [
             'vin' => $vin, 'model' => $model, 'category' => $cat, 'year' => (int)($_POST['year'] ?? 0) ?: null,
             'km' => max(0, (int)($_POST['km'] ?? 0)), 'soh' => $soh, 'answers' => $ans, 'score' => $score, 'grade' => $grade,
             'blockers' => $blockers, 'wants_new' => $wants, 'new_model' => $wants ? ($_POST['new_model'] ?? '') : '',
-            'support_niu' => $niu - ($CFG['incentive_trade_in'][$cat][$grade] ?? 0), 'support_dealer' => $dealer,
+            'support_niu' => $ip['permuta_niu'], 'support_dealer' => $ip['permuta_dealer'],
         ];
         redirect('stima', ['step' => 2]);
     }
@@ -800,15 +801,21 @@ case 'stima':
         $token = bin2hex(random_bytes(16));
         try {
             db()->prepare("INSERT INTO requests (token, dealer_id, name, email, phone, vin, category, model, year, km, battery_soh, answers_json, score, grade, blockers,
-                           wants_new, new_model, est_niu, est_dealer, appt_at, consent_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))")
+                           wants_new, new_model, est_niu, est_dealer, appt_at, consent_at, value_low, value_high, quote_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?,?,?)")
                 ->execute([$token, $dealerId, $name, $email, $phone, $S['vin'], $S['category'], $S['model'], $S['year'], $S['km'], $S['soh'],
                            json_encode($S['answers']), $S['score'], $S['grade'], implode("\n", $S['blockers']),
-                           $S['wants_new'] ? 1 : 0, $S['new_model'], $S['support_niu'], $S['support_dealer'], $slot]);
+                           $S['wants_new'] ? 1 : 0, $S['new_model'], $S['support_niu'], $S['support_dealer'], $slot,
+                           ($qq = build_quote($S, $S['new_model'] ?: null, date('Y-m-d')))['value_low'], $qq['value_high'], json_encode($qq)]);
         } catch (PDOException) { flash(t('Quell\'orario è appena stato prenotato. Scegline un altro.'), 'err'); redirect('stima', ['step' => 2, 'dealer' => $dealerId]); }
         unset($_SESSION['stima']);
         redirect('richiesta', ['t' => $token, 'new' => 1]);
     }
 
+    if ($S && isset($_GET['nm'])) {   // modello nuovo scelto nella quotazione
+        $nm = (string)$_GET['nm'];
+        $_SESSION['stima']['new_model'] = $S['new_model'] = in_array($nm, array_merge(...array_values($MODELS)), true) ? $nm : '';
+        $_SESSION['stima']['wants_new'] = $S['wants_new'] = $S['new_model'] !== '';
+    }
     page_start(t('Valuta il tuo NIU'), true);
     if (($_GET['step'] ?? '') === '2' && $S):
         $dealerId = (int)($_GET['dealer'] ?? 0);
@@ -823,14 +830,7 @@ case 'stima':
             <?php if ($S['blockers']): ?><div class="flash err"><?= t('Da quanto indichi, il veicolo potrebbe non rientrare nel programma 2nd Hand. Il dealer verificherà di persona.') ?></div><?php endif; ?>
           </div>
         </div>
-        <?php if ($S['grade'] !== 'D'): ?>
-        <div class="split">
-          <div class="offer hl"><span><?= t('Se acquisti un NIU nuovo') ?></span><b><?= eur($S['support_niu'] + $S['support_dealer']) ?></b>
-            <small><?= t('di supporto extra NIU + dealer, oltre alla valutazione del tuo usato') ?><?= $S['new_model'] ? ' · ' . h($S['new_model']) : '' ?></small></div>
-          <div class="offer"><span><?= t('Solo ritiro dell\'usato') ?></span><b><?= t('In officina') ?></b><small><?= t('il valore di ritiro lo propone il dealer dopo la verifica') ?></small></div>
-        </div>
-        <p class="muted"><?= t('Importi indicativi, soggetti a verifica del veicolo e alle condizioni della promozione in corso.') ?></p>
-        <?php endif; ?>
+        <?php render_quote(build_quote($S, $S['new_model'] ?: null, date('Y-m-d')), $S['grade'] !== 'D' ? array_keys(used_value_cfg()['prices']) : null, (int)($_GET['dealer'] ?? 0)); ?>
 
         <section class="card">
           <h2><?= t('Prenota la valutazione in concessionaria') ?></h2>
@@ -879,7 +879,7 @@ case 'stima':
                 <option value=""><?= t('— scegli —') ?></option>
                 <?php foreach ($CFG['categories'] as $c => $cl): ?><optgroup label="<?= h(t($cl)) ?>"><?php foreach ($MODELS[$c] as $m): ?><option data-cat="<?= $c ?>" <?= ($S['model'] ?? '') === $m ? 'selected' : '' ?>><?= h($m) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?>
               </select></label>
-            <label><?= t('Anno di acquisto') ?> <input type="number" name="year" min="2015" max="<?= date('Y') ?>" value="<?= h((string)($S['year'] ?? '')) ?>"></label>
+            <label><?= t('Anno di immatricolazione') ?> <input type="number" name="year" min="2015" max="<?= date('Y') ?>" required value="<?= h((string)($S['year'] ?? '')) ?>"></label>
             <label><?= t('Chilometri') ?> <input type="number" name="km" min="0" required value="<?= h((string)($S['km'] ?? '')) ?>"></label>
             <label><?= t('Salute batteria (%)') ?> <small class="muted"><?= t('— facoltativo, dall\'app NIU') ?></small><input type="number" name="battery_soh" min="0" max="100" value="<?= h((string)($S['soh'] ?? '')) ?>"></label>
           </div>
@@ -925,8 +925,8 @@ case 'richiesta':
         <div><dt><?= t('Dealer') ?></dt><dd><?= h($R['company']) ?><br><?= h($R['address'] ?: $R['dcity']) ?><?= $R['dphone'] ? '<br>' . h($R['dphone']) : '' ?></dd></div>
         <div><dt><?= t('Veicolo') ?></dt><dd><?= h($R['model']) ?> · <?= nf((int)$R['km']) ?> <?= t('km') ?></dd></div>
         <div><dt><?= t('Classe stimata') ?></dt><dd><?= grade_badge($R['grade']) ?></dd></div>
-        <?php if ($R['grade'] !== 'D'): ?><div><dt><?= t('Supporto se acquisti un NIU nuovo') ?></dt><dd><?= eur($R['est_niu'] + $R['est_dealer']) ?> <small class="muted"><?= t('(indicativo)') ?></small></dd></div><?php endif; ?>
       </dl>
+      <?php if ($R['quote_json']) render_quote(json_decode($R['quote_json'], true), null); ?>
       <?php if ($R['dealer_note']): ?><p><b><?= t('Nota:') ?></b> <?= h($R['dealer_note']) ?></p><?php endif; ?>
       <p class="muted"><?= t('Porta con te carta di circolazione, chiavi / NFC card e caricabatterie.') ?></p>
       <?php if (in_array($R['status'], ['richiesto', 'confermato'], true)): ?>
@@ -962,6 +962,7 @@ case 'appuntamenti':
             <div><dt><?= t('Autovalutazione cliente') ?></dt><dd><?= grade_badge($R['grade']) ?> <?= (int)$R['score'] ?>/100<?= $R['battery_soh'] !== null ? ' · SOH ' . (int)$R['battery_soh'] . '%' : '' ?></dd></div>
             <div><dt><?= t('Interesse NIU nuovo') ?></dt><dd><?= $R['wants_new'] ? '<b class="red">Sì</b>' . ($R['new_model'] ? ' — ' . h($R['new_model']) : '') : t('No') ?></dd></div>
           </dl>
+          <?php if ($R['quote_json']): ?><h3><?= t('Quotazione indicativa vista dal cliente') ?></h3><?php render_quote(json_decode($R['quote_json'], true), null); endif; ?>
           <table class="tbl"><?php foreach ($CHECKLIST as $items) foreach ($items as $k => $it): if (!isset($ans[$k])) continue; ?>
             <tr><td><?= h(t($it[3])) ?></td><td><span class="ans a-<?= h($ans[$k]) ?>"><?= h(['ok' => t('Sì'), 'usura' => t('In parte'), 'difetto' => t('No'), 'na' => t('Non so')][$ans[$k]]) ?></span></td></tr>
           <?php endforeach; ?></table>
@@ -1103,6 +1104,44 @@ function render_requests(array $rows, bool $niu): void
           <td><span class="badge s-<?= $badge[$r['status']] ?>"><?= h($lab[$r['status']]) ?></span></td></tr>
       <?php endforeach; ?>
     </table>
+<?php }
+
+/**
+ * Quotazione indicativa per il cliente. $models != null: il cliente può scegliere il NIU nuovo.
+ */
+function render_quote(array $q, ?array $models, int $dealerId = 0): void
+{
+    $tot = fn($v) => $v === null ? null : $v + $q['premio']; ?>
+    <section class="card quote">
+      <h2><?= t('La tua quotazione indicativa') ?></h2>
+      <table class="tbl breakdown">
+        <tr><td><?= t('Valore stimato del tuo usato') ?></td><td class="num"><?= $q['value_low'] !== null ? eur($q['value_low']) . ' – ' . eur($q['value_high']) : t('in sede') ?></td><td class="muted"><?= t('lo conferma il dealer dopo la verifica') ?></td></tr>
+        <tr><td><?= t('Premio NIU sul ritiro') ?></td><td class="num">+ <?= eur($q['premio']) ?></td><td class="muted"><?= t('offerto da NIU') ?></td></tr>
+        <tr class="tot"><td><b><?= t('Valutazione totale del tuo usato') ?></b></td><td class="num"><b><?= $q['value_low'] !== null ? eur($tot($q['value_low'])) . ' – ' . eur($tot($q['value_high'])) : '—' ?></b></td><td></td></tr>
+      </table>
+      <?php if ($models !== null || $q['new_model']): ?>
+        <h3><?= t('Se passi a un NIU nuovo (permuta)') ?></h3>
+        <?php if ($models !== null): ?>
+          <form method="get" class="row"><input type="hidden" name="p" value="stima"><input type="hidden" name="step" value="2"><?php if ($dealerId): ?><input type="hidden" name="dealer" value="<?= $dealerId ?>"><?php endif; ?>
+            <select name="nm" onchange="this.form.submit()" style="flex:1;min-width:260px;margin:0">
+              <option value=""><?= t('— scegli il NIU nuovo —') ?></option>
+              <?php foreach ($models as $m): ?><option <?= $q['new_model'] === $m ? 'selected' : '' ?>><?= h($m) ?></option><?php endforeach; ?>
+            </select><noscript><button class="btn ghost"><?= t('Calcola') ?></button></noscript>
+          </form>
+        <?php endif; ?>
+        <?php if ($q['new_model']): ?>
+        <table class="tbl breakdown">
+          <tr><td><?= t('Prezzo di listino {model}', ['model' => h($q['new_model'])]) ?></td><td class="num"><?= eur($q['list']) ?></td><td></td></tr>
+          <tr><td><?= t('Valutazione del tuo usato con premio NIU') ?></td><td class="num">− <?= $q['value_mid'] !== null ? eur($q['value_mid'] + $q['premio']) : eur($q['premio']) ?></td><td class="muted"><?= t('valore centrale della stima') ?></td></tr>
+          <tr><td><?= t('Extra permuta NIU') ?></td><td class="num">− <?= eur($q['perm_niu']) ?></td><td class="muted"><?= t('offerto da NIU') ?></td></tr>
+          <tr><td><?= t('Extra permuta dealer') ?></td><td class="num">− <?= eur($q['perm_dealer']) ?></td><td class="muted"><?= t('sconto del concessionario') ?></td></tr>
+          <tr><td><?= t('Ecobonus statale stimato') ?></td><td class="num">− <?= eur($q['ecobonus']) ?></td><td class="muted"><?= t('se ci sono fondi disponibili: 30% del prezzo IVA esclusa fino a 3.000 € nel 2026, 20% fino a 2.000 € dal 2027') ?></td></tr>
+          <tr class="tot"><td><b><?= t('Prezzo indicativo da pagare') ?></b></td><td class="num"><b><?= eur($q['final']) ?></b></td><td></td></tr>
+        </table>
+        <?php endif; ?>
+      <?php endif; ?>
+      <p class="muted"><?= t('Importi indicativi: il dealer conferma il valore del tuo usato in sede, dopo la verifica con la diagnosi NIU. Premio ed extra NIU sono pagati da NIU, l\'extra dealer è uno sconto del concessionario.') ?></p>
+    </section>
 <?php }
 
 /** Tabella "chi paga cosa" per dealer e cliente. */

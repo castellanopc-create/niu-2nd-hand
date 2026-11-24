@@ -136,8 +136,11 @@ ok(used_value('Modello sconosciuto', 2022, 1000, 'A', 90) === null, 'nessuna sti
 $cust = new Client($base);
 [$s, $b] = $cust->req('?p=stima');
 ok($s === 200 && str_contains($b, 'name="vin"'), 'pagina autovalutazione cliente');
-[$s, $b] = $cust->req('?p=stima', ['csrf' => $cust->csrf($b), 'action' => 'calcola', 'vin' => 'TESTVIN0000000002', 'model' => 'NQi Sport', 'km' => 5000, 'wants_new' => 1, 'new_model' => 'NQi GTS MY26']);
+[$s, $b] = $cust->req('?p=stima', ['csrf' => $cust->csrf($b), 'action' => 'calcola', 'vin' => 'TESTVIN0000000002', 'model' => 'NQi Sport', 'year' => 2022, 'km' => 5000, 'wants_new' => 1, 'new_model' => 'NQi GTS MY26']);
 ok($s === 200 && str_contains($b, 'big-grade'), 'stima cliente calcolata');
+ok(str_contains($b, 'class="card quote"') && str_contains($b, 'NQi GTS MY26') && preg_match_all('/class="num"><b>/', $b) >= 2, 'quotazione cliente con valore usato, premio NIU e prezzo del nuovo');
+[, $bq] = $cust->req('?p=stima&step=2&nm=NQiX+500+MY26');
+ok(str_contains($bq, 'NQiX 500 MY26'), 'il cliente cambia il NIU nuovo nella quotazione');
 [$s, $b] = $cust->req('?p=stima&step=2&dealer=2');
 preg_match('/name="slot" value="([^"]+)"/', $b, $m);
 ok(isset($m[1]), 'orari disponibili del dealer');

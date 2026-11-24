@@ -36,6 +36,9 @@ return [
         'max_days'  => 21,
     ],
 
+    // Vincolo Ecobonus: immatricolati da 'from' e acquistati con Ecobonus non rivendibili per 'months' mesi
+    'ecobonus_lock' => ['from' => '2027-01-01', 'months' => 12],
+
     // Valutazione: soglie di punteggio -> classe
     'grades' => [
         'A' => ['min' => 90, 'label' => 'Ottimo — certificabile NIU'],

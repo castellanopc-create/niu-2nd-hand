@@ -49,6 +49,15 @@ final class Client {
 }
 
 echo "Smoke test on $base\n";
+
+// Regola Ecobonus (logica pura)
+require $root . '/app/ecobonus.php';
+$e = fn($d, $x) => ecobonus_check($d, $x, '2027-01-01', 12, '2027-06-15');
+ok($e('2026-05-10', 'si')['status'] === 'ok', 'Ecobonus 2023-2026: nessun vincolo');
+ok($e('2027-03-01', 'si') === ['status' => 'locked', 'until' => '2028-03-01'], 'Ecobonus 2027: vincolo 12 mesi con data di sblocco');
+ok($e('2027-03-01', 'no')['status'] === 'ok', 'immatricolato 2027 senza Ecobonus: nessun vincolo');
+ok($e('2027-03-01', '')['status'] === 'missing', 'immatricolato 2027: la risposta Ecobonus è obbligatoria');
+ok(ecobonus_check('2027-01-10', 'si', '2027-01-01', 12, '2028-02-01')['status'] === 'ok', 'vincolo scaduto dopo 12 mesi');
 $admin = new Client($base);
 [$s, $b] = $admin->req('');
 ok($s === 200 && str_contains($b, 'name="password"'), 'primo avvio mostra il form di configurazione');

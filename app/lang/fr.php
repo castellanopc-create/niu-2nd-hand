@@ -464,4 +464,7 @@ return [
     'Foto del tuo veicolo' => 'Photos de votre véhicule',
     'Aggiungi foto' => 'Ajouter des photos',
     'Foto inviate dal cliente' => 'Photos envoyées par le client',
+    // Premi on/off
+    'Premi attivi' => 'Primes actives',
+    'Spento: clienti e dealer vedono solo il valore dell\'usato, senza premio NIU né extra permuta (fase 1 del programma).' => 'Désactivé : clients et concessionnaires ne voient que la valeur de l\'occasion, sans prime NIU ni bonus reprise (phase 1 du programme).',
 ];

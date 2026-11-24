@@ -464,4 +464,7 @@ return [
     'Foto del tuo veicolo' => 'Photos of your vehicle',
     'Aggiungi foto' => 'Add photos',
     'Foto inviate dal cliente' => 'Photos sent by the customer',
+    // Premi on/off
+    'Premi attivi' => 'Bonuses active',
+    'Spento: clienti e dealer vedono solo il valore dell\'usato, senza premio NIU né extra permuta (fase 1 del programma).' => 'Off: customers and dealers see only the used value, with no NIU bonus or trade-in extra (phase 1 of the programme).',
 ];

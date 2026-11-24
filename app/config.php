@@ -53,16 +53,19 @@ return [
         'D' => ['min' => 0,  'label' => 'Non idoneo al programma 2nd Hand'],
     ],
 
-    // Extra NIU al dealer per il ritiro, per categoria e classe (EUR) — ESEMPIO
+    // Premi attivi? (fase 1 del programma: no). Modificabile dall'admin in Impostazioni.
+    'incentives_enabled' => true,
+
+    // Premio NIU sul ritiro, riconosciuto al cliente anche senza permuta (EUR), per categoria e classe
     'incentive_trade_in' => [
-        'moped' => ['A' => 150, 'B' => 100, 'C' => 50,  'D' => 0],
-        'moto'  => ['A' => 300, 'B' => 200, 'C' => 100, 'D' => 0],
+        'moped' => ['A' => 150, 'B' => 100, 'C' => 50, 'D' => 0],
+        'moto'  => ['A' => 150, 'B' => 100, 'C' => 50, 'D' => 0],
     ],
 
-    // Supporto aggiuntivo se il cliente acquista un NIU nuovo (EUR) — ESEMPIO
-    // niu = quota NIU, dealer = quota suggerita al dealer
+    // Extra permuta, solo se il cliente acquista un NIU nuovo (EUR), per categoria e classe:
+    // niu = quota NIU (rimborsata al dealer), dealer = sconto del dealer, di pari importo
     'incentive_new_purchase' => [
-        'moped' => ['niu' => 200, 'dealer' => 100],
-        'moto'  => ['niu' => 400, 'dealer' => 200],
+        'moped' => ['A' => ['niu' => 150, 'dealer' => 150], 'B' => ['niu' => 100, 'dealer' => 100], 'C' => ['niu' => 50, 'dealer' => 50], 'D' => ['niu' => 0, 'dealer' => 0]],
+        'moto'  => ['A' => ['niu' => 150, 'dealer' => 150], 'B' => ['niu' => 100, 'dealer' => 100], 'C' => ['niu' => 50, 'dealer' => 50], 'D' => ['niu' => 0, 'dealer' => 0]],
     ],
 ];

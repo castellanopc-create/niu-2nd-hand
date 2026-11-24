@@ -63,14 +63,21 @@ function used_value(string $model, ?int $year, int $km, string $grade, ?int $soh
 }
 
 /** Incentivi scomposti: chi paga cosa. */
+function incentives_enabled(): bool
+{
+    global $CFG;
+    return !empty($CFG['incentives_enabled']);
+}
+
 function incentive_parts(string $cat, string $grade): array
 {
     global $CFG;
-    $eligible = $grade !== 'D';
+    if (!incentives_enabled()) return ['premio_ritiro' => 0, 'permuta_niu' => 0, 'permuta_dealer' => 0];
+    $np = $CFG['incentive_new_purchase'][$cat][$grade] ?? ['niu' => 0, 'dealer' => 0];
     return [
-        'premio_ritiro' => (int)($CFG['incentive_trade_in'][$cat][$grade] ?? 0),               // NIU, su ogni ritiro
-        'permuta_niu'   => $eligible ? (int)$CFG['incentive_new_purchase'][$cat]['niu'] : 0,     // NIU, solo con acquisto NIU nuovo
-        'permuta_dealer'=> $eligible ? (int)$CFG['incentive_new_purchase'][$cat]['dealer'] : 0,  // dealer, solo con acquisto NIU nuovo
+        'premio_ritiro' => (int)($CFG['incentive_trade_in'][$cat][$grade] ?? 0),   // NIU, su ogni ritiro (anche senza permuta)
+        'permuta_niu'   => $grade !== 'D' ? (int)$np['niu'] : 0,                     // NIU, solo con acquisto NIU nuovo
+        'permuta_dealer'=> $grade !== 'D' ? (int)$np['dealer'] : 0,                  // dealer, solo con acquisto NIU nuovo
     ];
 }
 

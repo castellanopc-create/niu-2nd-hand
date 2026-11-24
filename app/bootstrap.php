@@ -199,13 +199,8 @@ function evaluate(array $answers, string $cat, ?int $soh): array
 function incentives(string $cat, string $grade, bool $newPurchase): array
 {
     global $CFG;
-    $niu = $CFG['incentive_trade_in'][$cat][$grade] ?? 0;
-    $dealer = 0;
-    if ($newPurchase && $grade !== 'D') {
-        $niu    += $CFG['incentive_new_purchase'][$cat]['niu'];
-        $dealer  = $CFG['incentive_new_purchase'][$cat]['dealer'];
-    }
-    return [$niu, $dealer];
+    $p = incentive_parts($cat, $grade);
+    return [$p['premio_ritiro'] + ($newPurchase ? $p['permuta_niu'] : 0), $newPurchase ? $p['permuta_dealer'] : 0];
 }
 
 // --- Foto: validazione, ridimensionamento, rimozione EXIF/GPS -------------

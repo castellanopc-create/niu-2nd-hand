@@ -477,4 +477,5 @@ return [
     'fino a' => 'up to',
     '(con acquisto di un NIU nuovo, per fascia di prezzo)' => '(with the purchase of a new NIU, by price band)',
     'Si aggiunge al premio sul ritiro, che dipende dalla classe dell\'usato. Quota NIU: rimborsata da NIU al dealer. Quota dealer: sconto del dealer sul NIU nuovo.' => 'Added to the trade-in bonus, which depends on the used vehicle\'s grade. NIU share: refunded by NIU to the dealer. Dealer share: the dealer\'s discount on the new NIU.',
+    'COPERTINA' => 'COVER',
 ];
